@@ -3,4 +3,16 @@
 #include "ShotDemo.h"
 #include "Modules/ModuleManager.h"
 
-IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, ShotDemo, "ShotDemo" );
+#include "base/log.h"
+
+class FShotDemoModule : public FDefaultGameModuleImpl
+{
+public:
+	virtual void StartupModule() override
+	{
+		FDefaultGameModuleImpl::StartupModule();
+
+	}
+};
+
+IMPLEMENT_PRIMARY_GAME_MODULE(FShotDemoModule, ShotDemo, "ShotDemo");

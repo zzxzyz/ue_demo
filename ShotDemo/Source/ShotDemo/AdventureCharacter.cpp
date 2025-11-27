@@ -3,6 +3,8 @@
 
 #include "AdventureCharacter.h"
 
+#include "base/log.h"
+
 // Sets default values
 AAdventureCharacter::AAdventureCharacter()
 {
@@ -48,6 +50,7 @@ AAdventureCharacter::AAdventureCharacter()
 // Called when the game starts or when spawned
 void AAdventureCharacter::BeginPlay()
 {
+	LOG_INFO("begin play");
 	Super::BeginPlay();
 
 	check(GEngine != nullptr);
