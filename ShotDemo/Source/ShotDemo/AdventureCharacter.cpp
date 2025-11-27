@@ -48,6 +48,9 @@ void AAdventureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		// Bind Movement Actions
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AAdventureCharacter::Move);
 
+		// Bind Look Actions
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AAdventureCharacter::Look);
+
 		// Bind Jump Actions
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
@@ -58,6 +61,7 @@ void AAdventureCharacter::Move(const FInputActionValue& Value)
 {
 	// 2D Vector of movement values returned from the input action
 	const FVector2D MovementValue = Value.Get<FVector2D>();
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("moving"));
 
 	// Check if the controller posessing this Actor is valid
 	if (Controller)
@@ -72,3 +76,14 @@ void AAdventureCharacter::Move(const FInputActionValue& Value)
 	}
 }
 
+void AAdventureCharacter::Look(const FInputActionValue& Value)
+{
+	const FVector2D LookAxisValue = Value.Get<FVector2D>();
+
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Looking"));
+	if (Controller)
+	{
+		AddControllerYawInput(LookAxisValue.X);
+		AddControllerPitchInput(LookAxisValue.Y);
+	}
+}
