@@ -32,6 +32,11 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	class UButton* LoginButton;
 
+	// 登录按钮
+	UPROPERTY(meta = (BindWidget))
+    class UButton* CancelButton;
+
+
 	// 错误信息文本
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* ErrorText;
@@ -40,6 +45,13 @@ protected:
 	// 登录按钮点击事件
 	UFUNCTION()
 	void OnLoginButtonClicked();
+
+	// 取消按钮点击事件
+    UFUNCTION()
+    void OnCancelButtonClicked();
+
+	// 登录成功后的处理
+	void HandleLoginSuccess();
 
 	// 验证邮箱格式
 	bool IsValidEmail(const FString& Email) const;

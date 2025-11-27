@@ -16,6 +16,10 @@ void ULoginWidget::NativeConstruct()
 		LoginButton->OnClicked.AddDynamic(this, &ULoginWidget::OnLoginButtonClicked);
 	}
 
+	if (CancelButton) {
+		CancelButton->OnClicked.AddDynamic(this, &ULoginWidget::OnCancelButtonClicked);	
+	}
+
 	// 设置密码输入框为密码模式
 	if (PasswordTextBox)
 	{
@@ -70,8 +74,20 @@ void ULoginWidget::OnLoginButtonClicked()
 	UE_LOG(LogTemp, Warning, TEXT("Login attempt - Email: %s, Password: %s"), *Email, *Password);
 
 	// 登录成功后的处理（示例）
-	// 可以隐藏登录界面、切换到主菜单等
-	ShowError(TEXT("登录成功！")); // 临时显示成功消息
+	HandleLoginSuccess();
+}
+
+void ULoginWidget::HandleLoginSuccess()
+{
+	// 成功后可以隐藏或销毁登录界面
+	ClearError();
+	
+	UE_LOG(LogTemp, Warning, TEXT("Login success, closing login widget."));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Login success, closing login widget."));
+	// 可在此触发后续事件，如通知控制器切换关卡、加载主菜单等
+	RemoveFromParent();
+
+	UE_LOG(LogTemp, Warning, TEXT("Login success, closing login widget."));
 }
 
 bool ULoginWidget::IsValidEmail(const FString& Email) const
@@ -123,3 +139,9 @@ void ULoginWidget::ClearError()
 	}
 }
 
+void ULoginWidget::OnCancelButtonClicked()
+{
+    UE_LOG(LogTemp, Warning, TEXT("Cancel button clicked."));
+    GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Cancel button clicked."));
+	RemoveFromParent();
+}
