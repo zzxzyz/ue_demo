@@ -9,7 +9,7 @@
 #include "InputActionValue.h"
 #include "AdventureCharacter.generated.h"
 
-
+class UAnimBlueprint;
 class UInputMappingContext;
 class UInputAction;
 class UInputComponent;
@@ -76,4 +76,8 @@ public:
 	// First-person mesh, visible only to the owning player
 	UPROPERTY(VisibleAnywhere, Category = Mesh)
 	USkeletalMeshComponent* FirstPersonMeshComponent;
+
+	// First Person animations
+	UPROPERTY(EditAnywhere, Category = Animation)
+	UAnimBlueprint* FirstPersonDefaultAnim;
 };

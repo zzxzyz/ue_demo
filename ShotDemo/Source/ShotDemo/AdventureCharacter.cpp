@@ -52,6 +52,12 @@ void AAdventureCharacter::BeginPlay()
 
 	check(GEngine != nullptr);
 
+	// Only the owning player sees the first person mesh.
+	FirstPersonMeshComponent->SetOnlyOwnerSee(true);
+
+	// Set the animations on the first person mesh.
+	FirstPersonMeshComponent->SetAnimInstanceClass(FirstPersonDefaultAnim->GeneratedClass);
+
 	// Get the player controller for this character
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
