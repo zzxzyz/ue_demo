@@ -4,6 +4,7 @@
 #include "AdventureCharacter.h"
 
 #include "base/log.h"
+#include "monitor_usage.h"
 
 // Sets default values
 AAdventureCharacter::AAdventureCharacter()
@@ -47,10 +48,26 @@ AAdventureCharacter::AAdventureCharacter()
 	FirstPersonCameraComponent->FirstPersonScale = FirstPersonViewScale;
 }
 
+void TestMonitorUsage() {
+	static MonitorUsage::Ptr usage = CreateMonitorUsage();
+	static bool b_start = false;
+	if (usage != nullptr) {
+		if (!b_start) {
+			b_start = true;
+			usage->Start();
+		}
+		else {
+			b_start = false;
+			usage->Stop();
+		}
+	}
+}
+
 // Called when the game starts or when spawned
 void AAdventureCharacter::BeginPlay()
 {
 	LOG_INFO("begin play");
+	TestMonitorUsage();
 	Super::BeginPlay();
 
 	check(GEngine != nullptr);

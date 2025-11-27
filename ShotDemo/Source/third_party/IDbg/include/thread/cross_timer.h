@@ -52,7 +52,7 @@ protected:
   std::unordered_map<uint64_t, TimerInfo::Ptr> id_to_timer_;
 };
 
-IDBG_API CrossTimer::Ptr CreateTimer(const std::string& thread_name);
+IDBG_API CrossTimer::Ptr CreateTimer(const char* thread_name);
 
 class IdManager : public Singleton<IdManager> {
   friend class Singleton<IdManager>;
