@@ -92,6 +92,25 @@ void AAdventureCharacter::BeginPlay()
 	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using AdventureCharacter."));
 }
 
+// Called when the game ends or when destroyed
+void AAdventureCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	TestMonitorUsage();
+
+	// Log the EndPlay event with reason
+	const FString ReasonString = UEnum::GetValueAsString(EndPlayReason);
+	LOG_INFO("AdventureCharacter EndPlay - Reason: %s", TCHAR_TO_UTF8(*ReasonString));
+
+	// Display on-screen debug message
+	if (GEngine)
+	{
+		const FString Message = FString::Printf(TEXT("AdventureCharacter EndPlay - Reason: %s"), *ReasonString);
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Orange, Message);
+	}
+}
+
 // Called every frame
 void AAdventureCharacter::Tick(float DeltaTime)
 {

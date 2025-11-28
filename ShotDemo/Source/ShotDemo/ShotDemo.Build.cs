@@ -20,7 +20,21 @@ public class ShotDemo : ModuleRules
         PublicIncludePaths.Add(IDbgIncludeDir);
         PublicAdditionalLibraries.Add(Path.Combine(IDbgLibDir, "IDbg.lib"));
         PublicDelayLoadDLLs.Add("IDbg.dll");
-        RuntimeDependencies.Add("$(TargetOutputDir)/IDbg.dll", Path.Combine(IDbgLibDir, "IDbg.dll"));
+        
+        // Copy DLL to output directory
+        string IDbgDllPath = Path.Combine(IDbgLibDir, "IDbg.dll");
+        string ProjectBinariesDir = Path.Combine(Target.ProjectFile.Directory.FullName, "Binaries", "Win64");
+
+        System.Console.WriteLine("========================================");
+        System.Console.WriteLine("IDbg DLL Path: " + IDbgDllPath);
+        System.Console.WriteLine("$(BinaryOutputDir): " + "$(BinaryOutputDir)");
+        System.Console.WriteLine("ProjectBinariesDir: " + ProjectBinariesDir);
+        System.Console.WriteLine("========================================");
+        // Use BinaryOutputDir which is the standard variable for binary output
+        RuntimeDependencies.Add("$(BinaryOutputDir)/IDbg.dll", IDbgDllPath);
+        
+        // Also explicitly add to project Binaries directory as fallback
+        RuntimeDependencies.Add(Path.Combine(ProjectBinariesDir, "IDbg.dll"), IDbgDllPath);
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
