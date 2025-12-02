@@ -1,9 +1,9 @@
-print("hello in my lua actor")
+print("hello in play lua actor")
 
 local actor={}
 
 function actor:ReceiveBeginPlay()
-    print("MyActor:ReceiveBeginPlay enter")
+    print("PlayLuaActor:ReceiveBeginPlay enter")
     self.bCanEverTick = true
     self.Super:ReceiveBeginPlay()
 end
