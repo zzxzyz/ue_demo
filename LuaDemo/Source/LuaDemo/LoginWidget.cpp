@@ -6,6 +6,17 @@
 #include "Components/TextBlock.h"
 #include "Kismet/GameplayStatics.h"
 
+ULoginWidget::ULoginWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	LuaFilePath = "LoginWidget";
+}
+
+FString ULoginWidget::GetLuaFilePath_Implementation() const
+{
+	return LuaFilePath;
+}
+
 void ULoginWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -16,14 +27,22 @@ void ULoginWidget::NativeConstruct()
 		LoginButton->OnClicked.AddDynamic(this, &ULoginWidget::OnLoginButtonClicked);
 	}
 
-	if (CancelButton) {
-		CancelButton->OnClicked.AddDynamic(this, &ULoginWidget::OnCancelButtonClicked);	
-	}
+	// CancelButton 的绑定在 Lua 脚本中处理，不再在 C++ 中绑定
 
 	// 设置密码输入框为密码模式
 	if (PasswordTextBox)
 	{
 		PasswordTextBox->SetIsPassword(true);
+	}
+
+	// 调用lua的NativeConstruct函数
+	if (IsLuaFunctionExist(TEXT("NativeConstruct")))
+	{
+		CallLuaFunctionIfExist(TEXT("NativeConstruct"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("NativeConstruct function not found in Lua."));
 	}
 
 	// 初始化时清除错误信息
@@ -137,11 +156,4 @@ void ULoginWidget::ClearError()
 		ErrorText->SetText(FText::GetEmpty());
 		ErrorText->SetVisibility(ESlateVisibility::Collapsed);
 	}
-}
-
-void ULoginWidget::OnCancelButtonClicked()
-{
-    UE_LOG(LogTemp, Warning, TEXT("Cancel button clicked."));
-    GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Cancel button clicked."));
-	RemoveFromParent();
 }

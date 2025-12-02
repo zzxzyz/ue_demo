@@ -7,18 +7,28 @@
 #include "Components/EditableTextBox.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
+#include "LuaOverriderInterface.h"
 #include "LoginWidget.generated.h"
 
 /**
  * 登录界面Widget
  */
 UCLASS()
-class LUADEMO_API ULoginWidget : public UUserWidget
+class LUADEMO_API ULoginWidget : public UUserWidget, public ILuaOverriderInterface
 {
 	GENERATED_BODY()
 
 public:
+	ULoginWidget(const FObjectInitializer& ObjectInitializer);
+
 	virtual void NativeConstruct() override;
+
+	// Lua文件路径
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "slua")
+	FString LuaFilePath;
+
+	// 实现 ILuaOverriderInterface 接口
+	virtual FString GetLuaFilePath_Implementation() const override;
 
 	// 邮箱输入框
 	UPROPERTY(meta = (BindWidget))
@@ -45,10 +55,6 @@ protected:
 	// 登录按钮点击事件
 	UFUNCTION()
 	void OnLoginButtonClicked();
-
-	// 取消按钮点击事件
-    UFUNCTION()
-    void OnCancelButtonClicked();
 
 	// 登录成功后的处理
 	void HandleLoginSuccess();
