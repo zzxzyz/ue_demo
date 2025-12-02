@@ -436,40 +436,49 @@ namespace NS_SLUA {
         }
     }
 
-    static FAutoConsoleCommand CEnableRefTrace(
-        TEXT("slua.EnableRefTrace"),
-        TEXT("Enable [registry] tracer!"),
+    static FAutoConsoleCommand CToggleRefTrace(
+        TEXT("slua.ToggleRefTrace"),
+        TEXT("Toggle [registry] tracer!"),
         FConsoleCommandDelegate::CreateStatic(toggleRefTraceEnable),
         ECVF_Cheat);
 #endif
 
-#if WITH_EDITOR
-    void dumpUObjects() {
-        auto state = LuaState::get();
-        if (!state) return;
-        auto& map = state->cacheSet();
-        for (auto& it : map) {
-            UE_LOG(Slua, Log, TEXT("Pushed UObject %s"), *getUObjName(it.Key));
-        }
-    }
-
+#if !UE_BUILD_SHIPPING
     void garbageCollect() {
         auto state = LuaState::get();
         lua_gc(state->getLuaState(), LUA_GCCOLLECT, 0);
         UE_LOG(Slua, Log, TEXT("Performed full lua gc"));
     }
 
-    void memUsed() {
+    void dumpUObjects(FOutputDevice& OutputDevice) {
         auto state = LuaState::get();
-        int kb = lua_gc(state->getLuaState(), LUA_GCCOUNT, 0);
-        UE_LOG(Slua, Log, TEXT("Lua use memory %d kb"), kb);
+        if (!state) return;
+        auto& map = state->cacheSet();
+        for (auto& it : map) {
+            OutputDevice.Logf(TEXT("Pushed UObject %s"), *getUObjName(it.Key));
+        }
     }
 
-    static FAutoConsoleCommand CVarDumpUObjects(
-        TEXT("slua.DumpUObjects"),
-        TEXT("Dump all uobject that referenced by lua in main state"),
-        FConsoleCommandDelegate::CreateStatic(dumpUObjects),
-        ECVF_Cheat);
+    void memUsed(FOutputDevice& OutputDevice) {
+        auto state = LuaState::get();
+        int kb = lua_gc(state->getLuaState(), LUA_GCCOUNT, 0);
+        OutputDevice.Logf(TEXT("Lua use memory %d kb"), kb);
+    }
+
+    void dumpRefUObjects(FOutputDevice& OutputDevice) {
+        auto state = LuaState::get();
+        if (!state) return;
+
+        lua_gc(state->getLuaState(), LUA_GCCOLLECT, 0);
+
+        auto& map = state->cacheSet();
+        for (auto& it : map) {
+            if (!it.Value || (it.Value->flag & UD_REFERENCE))
+            {
+                OutputDevice.Logf(TEXT("Pushed Ref UObject %s"), *getUObjName(it.Key));
+            }
+        }
+    }
 
     static FAutoConsoleCommand CVarGC(
         TEXT("slua.GC"),
@@ -477,10 +486,22 @@ namespace NS_SLUA {
         FConsoleCommandDelegate::CreateStatic(garbageCollect),
         ECVF_Cheat);
 
-    static FAutoConsoleCommand CVarMem(
+    static FAutoConsoleCommandWithOutputDevice CVarDumpUObjects(
+        TEXT("slua.DumpUObjects"),
+        TEXT("Dump all uobject that referenced by lua in main state"),
+        FConsoleCommandWithOutputDeviceDelegate::CreateStatic(dumpUObjects),
+        ECVF_Cheat);
+
+    static FAutoConsoleCommandWithOutputDevice CVarMem(
         TEXT("slua.Mem"),
         TEXT("Print memory used"),
-        FConsoleCommandDelegate::CreateStatic(memUsed),
+        FConsoleCommandWithOutputDeviceDelegate::CreateStatic(memUsed),
+        ECVF_Cheat);
+    
+    static FAutoConsoleCommandWithOutputDevice CVarDumpRefUObjects(
+        TEXT("slua.DumpRefUObjects"),
+        TEXT("Dump all uobject that referenced by lua in main state"),
+        FConsoleCommandWithOutputDeviceDelegate::CreateStatic(dumpRefUObjects),
         ECVF_Cheat);
 #endif
 }

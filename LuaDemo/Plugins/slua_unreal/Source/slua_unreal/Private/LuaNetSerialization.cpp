@@ -612,6 +612,12 @@ bool FLuaNetSerialization::Write(FNetDeltaSerializeInfo& deltaParms, NS_SLUA::FL
                     for (LuaBitArray::FIterator It(changes); It; ++It)
                     {
                         int32 index = *It;
+                        if(index >= flatProperties.Num())
+                        {
+                            UE_LOG(Slua, Error, TEXT("FLuaNetSerialization::Write index[%d] out of range[%d] with Actor[%s]"), index, flatProperties.Num(), *actor->GetName());
+                            changes.Remove(index);
+                            continue;
+                        }
                         int32 propIndex = flatProperties[index].propIndex;
 
                         if (propIndex >= properties.Num() || !conditionMap[lifetimeConditions[propIndex]])
@@ -776,7 +782,7 @@ bool FLuaNetSerialization::CompareProperties(UObject* obj, NS_SLUA::FLuaNetSeria
                 auto &arrayMark = proxy.arrayDirtyMark[flatOffset];
                 auto &arrayPropInfo = flatArrayPropInfos[flatOffset];
                 int32 innerPropNum = arrayPropInfo.innerPropertyNum;
-                int32 elementSize = innerProp->ElementSize;
+                int32 elementSize = NS_SLUA::getPropertySize(innerProp);
                 auto& arrayFlatProperties = arrayPropInfo.properties;
                 
                 uint8* arrayData = newArrayHelper.GetRawPtr(0);

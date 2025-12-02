@@ -3,9 +3,10 @@ print("hello in game manager")
 local actor={}
 
 function actor:ReceiveBeginPlay()
+    print("MyActor:ReceiveBeginPlay enter")
     self.bCanEverTick = true
     self.Super:ReceiveBeginPlay()
-    print("MyActor:ReceiveBeginPlay")
+    print("MyActor:ReceiveBeginPlay exit")
 end
 
 function actor:Tick(reason)

@@ -1676,14 +1676,13 @@ namespace NS_SLUA {
 
     int LuaObject::objectToString(lua_State* L)
     {
-        const int BufMax = 128;
-        static char buffer[BufMax] = { 0 };
         bool isnil;
         UObject* obj = LuaObject::testudata<UObject>(L, 1, isnil);
         if (obj) {
             auto clsname = obj->GetClass()->GetFName().ToString();
             auto objname = obj->GetFName().ToString();
-            snprintf(buffer, BufMax, "%s: %p %s %p",TCHAR_TO_UTF8(*clsname), obj->GetClass(), TCHAR_TO_UTF8(*objname), obj);
+            lua_pushfstring(L, "%s: %p %s %p",TCHAR_TO_UTF8(*clsname), obj->GetClass(), TCHAR_TO_UTF8(*objname), obj);
+            return 1;
         }
         else {
             // if ud isn't a uobject, get __name of metatable to cast it to string
@@ -1692,19 +1691,31 @@ namespace NS_SLUA {
             // should have __name field
             if (tt == LUA_TSTRING) {
                 const char* metaname = lua_tostring(L,-1);
-                snprintf(buffer, BufMax, "%s: %p", metaname,ptr);
+                lua_pushfstring(L, "%s: %p", metaname,ptr);
+                return 1;
             }
             if (tt != LUA_TNIL)
                 lua_pop(L, 1);
         }
-
-        lua_pushstring(L, buffer);
+        lua_pushstring(L, "");
         return 1;
     }
 
-    void LuaObject::setupMetaTable(lua_State* L, const char* tn, lua_CFunction setupmt, lua_CFunction gc)
+    void LuaObject::setupMetaTable(lua_State* L, const char* tn, lua_CFunction setupmt, lua_CFunction gc, const char* basetype)
     {
         if (luaL_newmetatable(L, tn)) {
+            if (basetype) {
+                // create base table
+                lua_newtable(L);
+                lua_pushvalue(L, -1);
+                lua_setfield(L, -3, "__base");
+
+                lua_pushstring(L, basetype);
+                lua_seti(L, -2, 1);
+
+                // pop __base type
+                lua_pop(L, 1);
+            }
             if (setupmt)
                 setupmt(L);
             if (gc) {
@@ -1741,7 +1752,7 @@ namespace NS_SLUA {
 
     template<typename T>
     int pushUProperty(lua_State* L,FProperty* prop,uint8* parms,int i,NewObjectRecorder* objRecorder) {
-        auto p= (T*)prop;
+        auto p= CastField<T>(prop);
         return LuaObject::push(L,p->GetPropertyValue(parms));
     }
 
@@ -1754,7 +1765,7 @@ namespace NS_SLUA {
         return LuaObject::push(L, e);
     }
 
-    bool checkContainerInnerProperty(lua_State* L, int i, FProperty* expectInner, FProperty* argumentInner, const char* containerType)
+    bool LuaObject::checkContainerInnerProperty(lua_State* L, int i, FProperty* expectInner, FProperty* argumentInner, const char* containerType)
     {
         auto expectInnerClass = expectInner->GetClass();
         auto argumentInnerClass = argumentInner->GetClass();
@@ -1797,7 +1808,7 @@ namespace NS_SLUA {
             LuaArray* luaArrray = LuaObject::checkUD<LuaArray>(L,i);
             if (luaArrray)
             {
-                checkContainerInnerProperty(L, i, p->Inner, luaArrray->getInnerProp(), "Array");
+                LuaObject::checkContainerInnerProperty(L, i, p->Inner, luaArrray->getInnerProp(), "Array");
                 LuaArray::clone(luaArrray->get(), p->Inner, v);
                 lua_pushvalue(L, i);
                 return 1;
@@ -1815,8 +1826,8 @@ namespace NS_SLUA {
             LuaMap* luaMap = LuaObject::checkUD<LuaMap>(L,i);
             if (luaMap)
             {
-                checkContainerInnerProperty(L, i, p->KeyProp, luaMap->getKeyProp(), "Map Key");
-                checkContainerInnerProperty(L, i, p->ValueProp, luaMap->getValueProp(), "Map Value");
+                LuaObject::checkContainerInnerProperty(L, i, p->KeyProp, luaMap->getKeyProp(), "Map Key");
+                LuaObject::checkContainerInnerProperty(L, i, p->ValueProp, luaMap->getValueProp(), "Map Value");
                 LuaMap::clone(luaMap->get(), p->KeyProp, p->ValueProp, v);
                 lua_pushvalue(L, i);
                 return 1;
@@ -1834,7 +1845,7 @@ namespace NS_SLUA {
             LuaSet* luaSet = LuaObject::checkUD<LuaSet>(L,i);
             if (luaSet)
             {
-                checkContainerInnerProperty(L, i, p->ElementProp, luaSet->getInnerProp(), "Set");
+                LuaObject::checkContainerInnerProperty(L, i, p->ElementProp, luaSet->getInnerProp(), "Set");
                 LuaSet::clone(luaSet->get(), p->ElementProp, v);
                 lua_pushvalue(L, i);
                 return 1;
@@ -1908,7 +1919,7 @@ namespace NS_SLUA {
             size_t len;
             uint8* content = (uint8*)lua_tolstring(L, i, &len);
 #if ENGINE_MAJOR_VERSION==5
-            scriptArray->Add((int32)len, 1, GetPropertyAlignment(p->Inner));
+            scriptArray->Add((int32)len, 1, getPropertyAlignment(p->Inner));
 #else
             scriptArray->Add((int32)len, 1);
 #endif
@@ -1920,7 +1931,7 @@ namespace NS_SLUA {
         if (!UD)
             luaL_error(L, "expect LuaArray at %d, but got nil", i);
 
-        checkContainerInnerProperty(L, i, p->Inner, UD->getInnerProp(), "Array");
+        LuaObject::checkContainerInnerProperty(L, i, p->Inner, UD->getInnerProp(), "Array");
         
 #if (ENGINE_MINOR_VERSION<25) && (ENGINE_MAJOR_VERSION==4)
         auto outerFunc = Cast<UFunction>(p->GetOuter());
@@ -1971,8 +1982,8 @@ namespace NS_SLUA {
         if (!UD)
             luaL_error(L, "expect LuaMap at %d, but got nil", i);
 
-        checkContainerInnerProperty(L, i, p->KeyProp, UD->getKeyProp(), "Map Key");
-        checkContainerInnerProperty(L, i, p->ValueProp, UD->getValueProp(), "Map Value");
+        LuaObject::checkContainerInnerProperty(L, i, p->KeyProp, UD->getKeyProp(), "Map Key");
+        LuaObject::checkContainerInnerProperty(L, i, p->ValueProp, UD->getValueProp(), "Map Value");
 
         auto scriptMap = (FScriptMap*)parms;
 #if (ENGINE_MINOR_VERSION<25) && (ENGINE_MAJOR_VERSION==4)
@@ -2021,7 +2032,7 @@ namespace NS_SLUA {
         if (!UD)
             luaL_error(L, "expect LuaSet at %d, but got nil", i);
 
-        checkContainerInnerProperty(L, i, p->ElementProp, UD->getInnerProp(), "Set");
+        LuaObject::checkContainerInnerProperty(L, i, p->ElementProp, UD->getInnerProp(), "Set");
 
         auto scriptSet = (FScriptSet*)params;
 #if (ENGINE_MINOR_VERSION<25) && (ENGINE_MAJOR_VERSION==4)
@@ -2443,7 +2454,7 @@ namespace NS_SLUA {
         auto outerFunc = Cast<UFunction>(p->GetOwnerUObject());
 #endif
         if (lua_istable(L, i)) {
-            // Don't delete this below code: if you wan't strict limit for output parameter, then open it.
+            // Don't delete this below code: if you want strict limit for output parameter, then open it.
             /*if (IsReferenceParam(p->PropertyFlags, outerFunc) && !(p->PropertyFlags & CPF_ConstParm)) {
                 luaL_error(L, "reference arg %d expect %s, but got lua table!", i, TCHAR_TO_UTF8(*uss->GetName()));
                 return nullptr;
@@ -2451,6 +2462,14 @@ namespace NS_SLUA {
             fillUStructWithTable(L, p, parms, i);
             return nullptr;
         }
+
+        auto UD = (UserData<LuaStruct*>*)lua_touserdata(L, i);
+
+        if (!UD)
+            luaL_error(L, "arg %d expect userdata, but got %s", lua_absindex(L, i), lua_typename(L, i));
+
+        if (UD->flag & UD_HADFREE)
+            luaL_error(L, "arg %d had been freed, can't be used", lua_absindex(L, i));
 
         bool isLuaStruct = false;
         
@@ -2463,19 +2482,20 @@ namespace NS_SLUA {
             lua_pop(L, 2);
         }
         
-        LuaStruct* ls = nullptr;
-        if (isLuaStruct) {
-            auto UD = (UserData<LuaStruct*>*)lua_touserdata(L, i);
-            if (UD->flag & UD_HADFREE)
-                luaL_error(L, "arg %d had been freed, can't be used", lua_absindex(L, i));
-
-            ls = UD->ud;
-        }
-        else {
+        if (!isLuaStruct) {
             auto buf = LuaWrapper::checkValue(L, p, uss, parms, i);
-            if (buf)
-                return buf;
+            if (!buf) {
+                if (luaL_getmetafield(L, i, "__name") == LUA_TSTRING) {
+                    luaL_error(L, "expect struct of %s, but got %s", TCHAR_TO_UTF8(*uss->GetName()), lua_tostring(L, -1));
+                }
+                else {
+                    luaL_error(L, "expect struct of %s, but got %s", TCHAR_TO_UTF8(*uss->GetName()), lua_typename(L, i));
+                }
+            }
+            return buf;
         }
+
+        LuaStruct* ls = UD->ud;
 
         if(!ls) {
             luaL_error(L, "expect struct but got nil");
@@ -2495,6 +2515,18 @@ namespace NS_SLUA {
             p->CopyCompleteValue(parms, ls->buf);
         }
         return ls->buf;
+    }
+
+    template<>
+    int LuaObject::pushType(lua_State* L, UClass* cls, const char* tn, lua_CFunction setupmt, lua_CFunction gc, short nuvalues)
+    {
+        return pushTypeImp<UClass*, true, false>(L, cls, tn, setupmt, gc, nuvalues, "UObject");
+    }
+
+    template<>
+    int LuaObject::pushType(lua_State* L, UScriptStruct* cls, const char* tn, lua_CFunction setupmt, lua_CFunction gc, short nuvalues)
+    {
+        return pushTypeImp<UScriptStruct*, true, false>(L, cls, tn, setupmt, gc, nuvalues, "UObject");
     }
 
     const char* LuaObject::getType(lua_State* L, int p) {
@@ -2795,6 +2827,89 @@ namespace NS_SLUA {
         return 0;
     }
 
+    int enumNext(lua_State* L)
+    {
+        lua_settop(L, 2);
+
+        if (lua_getfield(L, 1, SLUA_ENUMINDEX))
+        {
+            lua_pushvalue(L, 2);
+            if (lua_gettable(L, -2))
+            {
+                int index = lua_tointeger(L, -1);
+                lua_pop(L, 1);
+
+                lua_pushinteger(L, index + 1);
+                if (lua_gettable(L, -2))
+                {
+                    lua_pushvalue(L, -1);
+                    lua_gettable(L, 1);
+                    return 2;
+                }
+            }
+            else
+                lua_pop(L, 1);
+        }
+        
+        return 0;
+    }
+
+    int enumPairs(lua_State* L)
+    {
+        lua_pushstring(L, SLUA_ENUMINDEX);
+        if (!lua_rawget(L, 1))
+        {
+            lua_pushstring(L, SLUA_CPPINST);
+            lua_rawget(L, 1);
+            int t = lua_type(L, -1);
+            UEnum* e = nullptr;
+            if (t == LUA_TSTRING) { // SLUA_CPPINST is saved as PathName
+                FString path(UTF8_TO_TCHAR(lua_tostring(L, -1)));
+#if ENGINE_MAJOR_VERSION==5 && ENGINE_MINOR_VERSION>0
+                static UPackage* AnyPackage = (UPackage*)-1;
+#else
+                static UPackage* AnyPackage = ANY_PACKAGE;
+#endif
+                e = FindObject<UEnum>(AnyPackage, *path);
+                if (!e) {
+                    e = LoadObject<UEnum>(NULL, *path);
+                }
+            }
+            lua_pop(L, 1);
+
+            if (e)
+            {
+                bool isbpEnum = Cast<UUserDefinedEnum>(e) != nullptr;
+                int num = e->NumEnums();
+
+                lua_createtable(L, num, num);
+                for (int i = 0; i < num; i++) {
+                    FString name;
+                    // if is bp enum, can't get name as key
+                    if (isbpEnum)
+                        name = *FTextInspector::GetSourceString(e->GetDisplayNameTextByIndex(i));
+                    else
+                        name = e->GetNameStringByIndex(i);
+                    
+                    lua_pushstring(L, TCHAR_TO_UTF8(*name));
+                    lua_pushvalue(L, -1);
+                    lua_rawseti(L, -3, i + 1);
+
+                    lua_pushinteger(L, i + 1);
+                    lua_settable(L, -3);
+                }
+
+                lua_setfield(L, 1, SLUA_ENUMINDEX);
+            }
+        }
+        lua_pop(L, 1);
+
+        lua_pushcfunction(L, enumNext);
+        lua_pushvalue(L, 1);
+        lua_pushinteger(L, 1);
+        return 3;
+    }
+
     int LuaObject::pushEnum(lua_State* L, UEnum* e)
     {
         LuaState* ls = LuaState::get(L);
@@ -2803,9 +2918,15 @@ namespace NS_SLUA {
             return 1;
 
         bool isbpEnum = Cast<UUserDefinedEnum>(e) != nullptr;
-        // return a enum as table
-        lua_newtable(L);
         int num = e->NumEnums();
+
+        // return a enum as table
+        lua_createtable(L, 0, num + 2);
+
+        // save SLUA_CPPINST as PathName
+        lua_pushstring(L, TCHAR_TO_UTF8(*e->GetPathName()));
+        lua_setfield(L, -2, SLUA_CPPINST);
+
         for (int i = 0; i < num; i++) {
             FString name;
             // if is bp enum, can't get name as key
@@ -2822,6 +2943,10 @@ namespace NS_SLUA {
         {
             lua_pushcfunction(L, enumIndex);
             lua_setfield(L, -2, "__index");
+            lua_pushcfunction(L, enumNext);
+            lua_setfield(L, -2, "__next");
+            lua_pushcfunction(L, enumPairs);
+            lua_setfield(L, -2, "__pairs");
         }
         lua_setmetatable(L, -2);
 

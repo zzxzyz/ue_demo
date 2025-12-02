@@ -28,7 +28,7 @@ namespace NS_SLUA
         static void addLuaRepilcateClass(const UClass* someBase);
         static bool isLuaReplicateObject(UObject* obj);
 
-        static void addLuaRPCType(const FString& rpcType, EFunctionFlags netFlag);
+        static void addLuaRPCType(const FString& rpcTypeName, EFunctionFlags netFlag);
         
         static ClassLuaReplicated* addClassReplicatedProps(NS_SLUA::lua_State* L, UObject* obj, const NS_SLUA::LuaVar& luaModule);
         static void initLuaReplicatedProps(NS_SLUA::lua_State* L, UObject* obj, const ClassLuaReplicated& classReplicated, const NS_SLUA::LuaVar& luaTable);
@@ -49,6 +49,7 @@ namespace NS_SLUA
         
         void addClassRPC(lua_State* L, UClass* cls, const FString& luaFilePath);
         bool addClassRPCRecursive(lua_State* L, UClass* cls, const FString& luaFilePath, LuaVar& cppSuperModule);
+        static void clearClassNetCache(UClass* cls);
         LuaVar findFirstCommomModule(lua_State* L, const LuaVar& A, const LuaVar& B);
         bool addModuleRPCRecursive(lua_State* L, UClass* cls, const LuaVar& luaModule, const LuaVar& cppSuperModule);
         bool addClassRPCByType(lua_State* L, UClass* cls, const LuaVar& luaModule, const FString& repType, EFunctionFlags netFlag);
@@ -68,13 +69,20 @@ namespace NS_SLUA
         static ClassLuaReplicatedMap classLuaReplicatedMap;
 
         typedef TMap<void*, FLuaNetSerializationProxy*> LuaNetSerializationMap;
-        typedef TMap<TWeakObjectPtr<UObject>, void*, FDefaultSetAllocator, TWeakObjectPtrMapKeyFuncs<TWeakObjectPtr<UObject>, void*>> ObjectToLuaNetAddressMap;
+        typedef TMap<UObject*, void*> ObjectToLuaNetAddressMap;
         static LuaNetSerializationMap luaNetSerializationMap;
         static ObjectToLuaNetAddressMap objectToLuaNetAddressMap;
 
         static TArray<const UClass*, TAlignedHeapAllocator<16>> luaReplicateClasses;
 
-        static TMap<FString, EFunctionFlags> luaRPCTypeMap;
+        struct FLuaRPCType
+        {
+	        FString typeName;
+            EFunctionFlags netFlags;
+        };
+        typedef TArray<FLuaRPCType> FLuaRPCTypeList;
+
+        static FLuaRPCTypeList luaRPCTypeList;
         static TSet<TWeakObjectPtr<UClass>> addedRPCClasses;
 #if WITH_EDITOR
         static TSet<TWeakObjectPtr<UFunction>> luaRPCFuncs;

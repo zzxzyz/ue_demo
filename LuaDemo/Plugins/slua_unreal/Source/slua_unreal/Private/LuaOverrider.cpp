@@ -53,7 +53,6 @@ namespace NS_SLUA
 }
 
 TMap<NS_SLUA::lua_State*, ULuaOverrider::ObjectTableMap> ULuaOverrider::objectTableMap;
-ULuaOverrider::ClassNativeMap ULuaOverrider::classSuperFuncs;
 
 #if (ENGINE_MINOR_VERSION<19) && (ENGINE_MAJOR_VERSION==4)
 void ULuaOverrider::luaOverrideFunc(FFrame& Stack, RESULT_DECL)
@@ -349,8 +348,11 @@ void ULuaOverrider::onLuaStateClose(NS_SLUA::lua_State* L)
         auto tableMap = objectTableMap.Find(L);
         for (auto iter : *tableMap)
         {
-            UObject* obj = iter.Key.Get();
-            if (!obj) continue;
+            UObject* obj = iter.Key;
+            if (!NS_SLUA::LuaObject::isUObjectValid(obj))
+            {
+                continue;
+            }
             ILuaOverriderInterface* overrideInterface = Cast<ILuaOverriderInterface>(obj);
             if (!overrideInterface) continue;
             overrideInterface->FuncMap.Empty();
@@ -521,14 +523,6 @@ namespace NS_SLUA
 #if (ENGINE_MINOR_VERSION<25) && (ENGINE_MAJOR_VERSION==4)
     LuaOverrider::FBlueprintFlushReinstancingQueue LuaOverrider::blueprintFlushReinstancingQueue;
 #endif
-
-    #define ACCESS_PRIVATE_FIELD(Class, Type, Member) \
-        template <typename Class, Type Class::* M> \
-        struct AccessPrivate##Class##Member { \
-            friend Type Class::* Private##Class##Member() { return M; } \
-        };\
-        Type Class::* Private##Class##Member(); \
-        template struct AccessPrivate##Class##Member<Class, &Class::Member>
     
     LuaOverrider::LuaOverrider(NS_SLUA::LuaState* luaState)
         : sluaState(luaState)
@@ -601,34 +595,6 @@ namespace NS_SLUA
         if (!obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
         {
             tryHook(obj, false);
-        }
-
-        // Process UInputComponent
-        if (!obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) && obj->IsA(UInputComponent::StaticClass()))
-        {
-            auto inputComponent = Cast<UInputComponent>((UObject*)obj);
-            if (inputComponent)
-            {
-                AActor* actor = Cast<APlayerController>(Object->GetOuter());
-                if (!actor)
-                {
-                    actor = Cast<APawn>(Object->GetOuter());
-                }
-#if (ENGINE_MINOR_VERSION<25) && (ENGINE_MAJOR_VERSION==4)
-                if (actor && actor->Role >= ROLE_AutonomousProxy)
-#else
-                if (actor && actor->GetLocalRole() >= ROLE_AutonomousProxy)
-#endif
-                {
-                    inputComponents.AddUnique(inputComponent);
-
-                    if (onWorldTickStartHandle.IsValid())
-                    {
-                        FWorldDelegates::OnWorldTickStart.Remove(onWorldTickStartHandle);
-                    }
-                    onWorldTickStartHandle = FWorldDelegates::OnWorldTickStart.AddRaw(this, &LuaOverrider::onWorldTickStart);
-                }
-            }
         }
     }
 
@@ -846,7 +812,11 @@ namespace NS_SLUA
                     // func hooked by insert code
                     if (scriptNum >= CodeSize && script[0] == Ex_LuaOverride)
                     {
+#if UE_5_5_OR_LATER
+                        script.RemoveAt(0, CodeSize, EAllowShrinking::No);
+#else
                         script.RemoveAt(0, CodeSize, false);
+#endif
                         if (script.Num() == 0)
                         {
                             // Fixed crash: avoid FFrame Construct initialize with "Code(InNode->Script.GetData())" error assign with not null data while play twice in editor!
@@ -938,7 +908,7 @@ namespace NS_SLUA
 #if WITH_EDITOR
     void clearSuperFuncCache(UClass* cls)
     {
-        if (!cls || !cls->IsValidLowLevel() || !IsValid(cls))
+        if (!cls->IsValidLowLevel() || !IsValid(cls))
         {
             return;
         }
@@ -1008,7 +978,11 @@ namespace NS_SLUA
             }
             curIndex++;
         }
+#if UE_5_5_OR_LATER
+        asyncLoadedObjects.RemoveAt(newIndex, asyncLoadedObjects.Num() - newIndex, EAllowShrinking::No);
+#else
         asyncLoadedObjects.RemoveAt(newIndex, asyncLoadedObjects.Num() - newIndex, false);
+#endif
 
         bOnAsyncLoadingFlushUpdate = false;
     }
@@ -1307,6 +1281,33 @@ namespace NS_SLUA
             luaInterface->PostLuaHook();
         }
 
+        // Process UInputComponent
+        if (obj->IsA(UInputComponent::StaticClass()))
+        {
+            auto inputComponent = Cast<UInputComponent>((UObject*)obj);
+            if (inputComponent)
+            {
+                AActor* actor = Cast<APlayerController>(obj->GetOuter());
+                if (!actor)
+                {
+                    actor = Cast<APawn>(obj->GetOuter());
+                }
+#if (ENGINE_MINOR_VERSION<25) && (ENGINE_MAJOR_VERSION==4)
+                if (actor && actor->Role >= ROLE_AutonomousProxy)
+#else
+                if (actor && actor->GetLocalRole() >= ROLE_AutonomousProxy)
+#endif
+                {
+                    inputComponents.AddUnique(inputComponent);
+
+                    if (onWorldTickStartHandle.IsValid())
+                    {
+                        FWorldDelegates::OnWorldTickStart.Remove(onWorldTickStartHandle);
+                    }
+                    onWorldTickStartHandle = FWorldDelegates::OnWorldTickStart.AddRaw(this, &LuaOverrider::onWorldTickStart);
+                }
+            }
+        }
         return true;
     }
 

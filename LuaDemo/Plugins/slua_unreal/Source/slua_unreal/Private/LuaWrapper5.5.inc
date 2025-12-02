@@ -1,6 +1,7 @@
 
     static UScriptStruct* FIntPointStruct = nullptr;
     static UScriptStruct* FIntVectorStruct = nullptr;
+    static UScriptStruct* FInt64Vector2Struct = nullptr;
     static UScriptStruct* FIntVector4Struct = nullptr;
     static UScriptStruct* FLinearColorStruct = nullptr;
     static UScriptStruct* FColorStruct = nullptr;
@@ -24,6 +25,7 @@
     static UScriptStruct* FInt32IntervalStruct = nullptr;
     static UScriptStruct* FFrameNumberStruct = nullptr;
     static UScriptStruct* FFrameTimeStruct = nullptr;
+    static UScriptStruct* FFrameRateStruct = nullptr;
     static UScriptStruct* FSoftObjectPathStruct = nullptr;
     static UScriptStruct* FSoftClassPathStruct = nullptr;
     static UScriptStruct* FPrimaryAssetTypeStruct = nullptr;
@@ -98,6 +100,34 @@
         auto v = LuaObject::checkValue<FIntVector*>(L, i);
         if (!v) {
             luaL_error(L, "check FIntVector nil value");
+            return nullptr;
+        }
+        p->CopyCompleteValue(parms, v);
+        return v;
+    }
+
+    static inline FInt64Vector2* __newFInt64Vector2() {
+        return new FInt64Vector2();
+    }
+
+    static void __pushFInt64Vector2(lua_State* L, FStructProperty* p, uint8* parms, int i) {
+        if (i != 0) {
+            auto v = LuaObject::checkValue<FInt64Vector2*>(L, i);
+            if (v) {
+                p->CopyCompleteValue(v, parms);
+                lua_pushvalue(L, i);
+                return;
+            }
+        }
+        auto ptr = __newFInt64Vector2();
+        p->CopyCompleteValue(ptr, parms);
+        LuaObject::push<FInt64Vector2>(L, "FInt64Vector2", ptr, UD_AUTOGC | UD_VALUETYPE);
+    }
+
+    static void* __checkFInt64Vector2(lua_State* L, FStructProperty* p, uint8* parms, int i) {
+        auto v = LuaObject::checkValue<FInt64Vector2*>(L, i);
+        if (!v) {
+            luaL_error(L, "check FInt64Vector2 nil value");
             return nullptr;
         }
         p->CopyCompleteValue(parms, v);
@@ -742,6 +772,34 @@
         auto v = LuaObject::checkValue<FFrameTime*>(L, i);
         if (!v) {
             luaL_error(L, "check FFrameTime nil value");
+            return nullptr;
+        }
+        p->CopyCompleteValue(parms, v);
+        return v;
+    }
+
+    static inline FFrameRate* __newFFrameRate() {
+        return new FFrameRate();
+    }
+
+    static void __pushFFrameRate(lua_State* L, FStructProperty* p, uint8* parms, int i) {
+        if (i != 0) {
+            auto v = LuaObject::checkValue<FFrameRate*>(L, i);
+            if (v) {
+                p->CopyCompleteValue(v, parms);
+                lua_pushvalue(L, i);
+                return;
+            }
+        }
+        auto ptr = __newFFrameRate();
+        p->CopyCompleteValue(ptr, parms);
+        LuaObject::push<FFrameRate>(L, "FFrameRate", ptr, UD_AUTOGC | UD_VALUETYPE);
+    }
+
+    static void* __checkFFrameRate(lua_State* L, FStructProperty* p, uint8* parms, int i) {
+        auto v = LuaObject::checkValue<FFrameRate*>(L, i);
+        if (!v) {
+            luaL_error(L, "check FFrameRate nil value");
             return nullptr;
         }
         p->CopyCompleteValue(parms, v);
@@ -1552,6 +1610,16 @@
             }
         }
 
+        static int InitFromString(lua_State* L) {
+            {
+                CheckSelf(FIntPoint);
+                auto InSourceString = LuaObject::checkValue<FString>(L, 2);
+                auto ret = self->InitFromString(InSourceString);
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
         static int DivideAndRoundUp(lua_State* L) {
             {
                 auto lhs = LuaObject::checkValue<FIntPoint*>(L, 1);
@@ -1619,6 +1687,7 @@
             LuaObject::addMethod(L, "ComponentMin", ComponentMin, true);
             LuaObject::addMethod(L, "ComponentMax", ComponentMax, true);
             LuaObject::addMethod(L, "ToString", ToString, true);
+            LuaObject::addMethod(L, "InitFromString", InitFromString, true);
             LuaObject::addMethod(L, "DivideAndRoundUp", DivideAndRoundUp, false);
             LuaObject::addMethod(L, "DivideAndRoundDown", DivideAndRoundDown, false);
             LuaObject::addMethod(L, "Num", Num, false);
@@ -1904,6 +1973,64 @@
             }
         }
 
+        static int ComponentMax(lua_State* L) {
+            {
+                CheckSelf(FIntVector);
+                auto Other = LuaObject::checkValue<FIntVector*>(L, 2);
+                if (!Other) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& OtherRef = *Other;
+                if (lua_isnoneornil(L, 3)) {
+                    auto ret = __newFIntVector();
+                    *ret = self->ComponentMax(OtherRef);
+                    LuaObject::push<FIntVector>(L, "FIntVector", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FIntVector*>(L, 3);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FIntVector type.", 3);
+                    *ret = self->ComponentMax(OtherRef);
+                    lua_pushvalue(L, 3);
+                }
+                return 1;
+            }
+        }
+
+        static int ComponentMin(lua_State* L) {
+            {
+                CheckSelf(FIntVector);
+                auto Other = LuaObject::checkValue<FIntVector*>(L, 2);
+                if (!Other) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& OtherRef = *Other;
+                if (lua_isnoneornil(L, 3)) {
+                    auto ret = __newFIntVector();
+                    *ret = self->ComponentMin(OtherRef);
+                    LuaObject::push<FIntVector>(L, "FIntVector", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FIntVector*>(L, 3);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FIntVector type.", 3);
+                    *ret = self->ComponentMin(OtherRef);
+                    lua_pushvalue(L, 3);
+                }
+                return 1;
+            }
+        }
+
+        static int AppendString(lua_State* L) {
+            {
+                CheckSelf(FIntVector);
+                auto Out = LuaObject::checkValue<FString>(L, 2);
+                self->AppendString(Out);
+                LuaObject::push(L, Out);
+                return 1;
+            }
+        }
+
         static int ToString(lua_State* L) {
             {
                 CheckSelf(FIntVector);
@@ -1913,20 +2040,30 @@
             }
         }
 
+        static int InitFromString(lua_State* L) {
+            {
+                CheckSelf(FIntVector);
+                auto InSourceString = LuaObject::checkValue<FString>(L, 2);
+                auto ret = self->InitFromString(InSourceString);
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
         static int DivideAndRoundUp(lua_State* L) {
             {
-                auto lhs = LuaObject::checkValue<FIntVector*>(L, 1);
-                auto lhsVal = *lhs;
+                auto Lhs = LuaObject::checkValue<FIntVector*>(L, 1);
+                auto LhsVal = *Lhs;
                 auto Divisor = LuaObject::checkValue<int>(L, 2);
                 if (lua_isnoneornil(L, 3)) {
                     auto ret = __newFIntVector();
-                    *ret = FIntVector::DivideAndRoundUp(lhsVal, Divisor);
+                    *ret = FIntVector::DivideAndRoundUp(LhsVal, Divisor);
                     LuaObject::push<FIntVector>(L, "FIntVector", ret, UD_AUTOGC | UD_VALUETYPE);
                 } else {
                     auto ret = LuaObject::checkValue<FIntVector*>(L, 3);
                     if (!ret)
                         luaL_error(L, "arg %d expect FIntVector type.", 3);
-                    *ret = FIntVector::DivideAndRoundUp(lhsVal, Divisor);
+                    *ret = FIntVector::DivideAndRoundUp(LhsVal, Divisor);
                     lua_pushvalue(L, 3);
                 }
                 return 1;
@@ -1959,11 +2096,415 @@
             LuaObject::addField(L, "ZeroValue", get_ZeroValue, nullptr, false);
             LuaObject::addField(L, "NoneValue", get_NoneValue, nullptr, false);
             LuaObject::addMethod(L, "IsZero", IsZero, true);
+            LuaObject::addMethod(L, "ComponentMax", ComponentMax, true);
+            LuaObject::addMethod(L, "ComponentMin", ComponentMin, true);
+            LuaObject::addMethod(L, "AppendString", AppendString, true);
             LuaObject::addMethod(L, "ToString", ToString, true);
+            LuaObject::addMethod(L, "InitFromString", InitFromString, true);
             LuaObject::addMethod(L, "DivideAndRoundUp", DivideAndRoundUp, false);
             LuaObject::addMethod(L, "Num", Num, false);
             LuaObject::addMethod(L, "clone", clone, true);
             LuaObject::finishType(L, "FIntVector", __ctor, __gc);
+        }
+
+    };
+
+    struct FInt64Vector2Wrapper {
+
+        static int __ctor(lua_State* L) {
+            auto argc = lua_gettop(L);
+            if (argc == 1) {
+                auto self = new FInt64Vector2();
+                LuaObject::push<FInt64Vector2>(L, "FInt64Vector2", self, UD_AUTOGC | UD_VALUETYPE);
+                return 1;
+            }
+            if (argc == 2) {
+                auto InValue = LuaObject::checkValue<int>(L, 2);
+                auto InValueVal = (long long)InValue;
+                auto self = new FInt64Vector2(InValueVal);
+                LuaObject::push<FInt64Vector2>(L, "FInt64Vector2", self, UD_AUTOGC | UD_VALUETYPE);
+                return 1;
+            }
+            if (argc == 3) {
+                auto InX = LuaObject::checkValue<int>(L, 2);
+                auto InXVal = (long long)InX;
+                auto InY = LuaObject::checkValue<int>(L, 3);
+                auto InYVal = (long long)InY;
+                auto self = new FInt64Vector2(InXVal, InYVal);
+                LuaObject::push<FInt64Vector2>(L, "FInt64Vector2", self, UD_AUTOGC | UD_VALUETYPE);
+                return 1;
+            }
+            luaL_error(L, "call FInt64Vector2() error, argc=%d", argc);
+            return 0;
+        }
+
+        static int clone(lua_State* L) {
+            CheckSelf(FInt64Vector2);
+            auto ret = __newFInt64Vector2();
+            *ret = *self;
+            LuaObject::push<FInt64Vector2>(L, "FInt64Vector2", ret, UD_AUTOGC | UD_VALUETYPE);
+            return 1;
+        }
+
+        static int __gc(lua_State* L) {
+            CheckSelfSafe(FInt64Vector2);
+            SLUA_GCSTRUCT(FInt64Vector2);
+            return 0;
+        }
+
+        static int __eq(lua_State* L) {
+            CheckSelf(FInt64Vector2);
+            if (LuaObject::matchType(L, 2, "FInt64Vector2")) {
+                auto Other = LuaObject::checkValue<FInt64Vector2*>(L, 2);
+                if (!Other) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& OtherRef = *Other;
+                auto ret = (*self == OtherRef);
+                LuaObject::push(L, ret);
+                return 1;
+            }
+            LuaObject::push(L, false);
+            return 1;
+        }
+
+        static int __mul(lua_State* L) {
+            CheckSelf(FInt64Vector2);
+            if (LuaObject::matchType(L, 2, "FInt64Vector2")) {
+                auto Other = LuaObject::checkValue<FInt64Vector2*>(L, 2);
+                if (!Other) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& OtherRef = *Other;
+                auto ret = __newFInt64Vector2();
+                *ret = (*self * OtherRef);
+                LuaObject::push<FInt64Vector2>(L, "FInt64Vector2", ret, UD_AUTOGC | UD_VALUETYPE);
+                return 1;
+            }
+            if (lua_isnumber(L, 2)) {
+                auto Scale = LuaObject::checkValue<int>(L, 2);
+                auto ScaleVal = (long long)Scale;
+                auto ret = __newFInt64Vector2();
+                *ret = (*self * ScaleVal);
+                LuaObject::push<FInt64Vector2>(L, "FInt64Vector2", ret, UD_AUTOGC | UD_VALUETYPE);
+                return 1;
+            }
+            luaL_error(L, "FInt64Vector2 operator__mul error, arg=%d", lua_typename(L, 2));
+            return 0;
+        }
+
+        static int mul(lua_State* L) {
+            CheckSelf(FInt64Vector2);
+            if (LuaObject::matchType(L, 2, "FInt64Vector2")) {
+                auto Other = LuaObject::checkValue<FInt64Vector2*>(L, 2);
+                if (!Other) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& OtherRef = *Other;
+                *self = *self * OtherRef;
+                lua_pushvalue(L, 1);
+                return 1;
+            }
+            if (lua_isnumber(L, 2)) {
+                auto Scale = LuaObject::checkValue<int>(L, 2);
+                auto ScaleVal = (long long)Scale;
+                *self = *self * ScaleVal;
+                lua_pushvalue(L, 1);
+                return 1;
+            }
+            luaL_error(L, "FInt64Vector2 operator mul error, arg=%d", lua_typename(L, 2));
+            return 0;
+        }
+
+        static int __div(lua_State* L) {
+            CheckSelf(FInt64Vector2);
+            if (lua_isnumber(L, 2)) {
+                auto Divisor = LuaObject::checkValue<int>(L, 2);
+                auto DivisorVal = (long long)Divisor;
+                auto ret = __newFInt64Vector2();
+                *ret = (*self / DivisorVal);
+                LuaObject::push<FInt64Vector2>(L, "FInt64Vector2", ret, UD_AUTOGC | UD_VALUETYPE);
+                return 1;
+            }
+            luaL_error(L, "FInt64Vector2 operator__div error, arg=%d", lua_typename(L, 2));
+            return 0;
+        }
+
+        static int div(lua_State* L) {
+            CheckSelf(FInt64Vector2);
+            if (lua_isnumber(L, 2)) {
+                auto Divisor = LuaObject::checkValue<int>(L, 2);
+                auto DivisorVal = (long long)Divisor;
+                *self = *self / DivisorVal;
+                lua_pushvalue(L, 1);
+                return 1;
+            }
+            luaL_error(L, "FInt64Vector2 operator div error, arg=%d", lua_typename(L, 2));
+            return 0;
+        }
+
+        static int __add(lua_State* L) {
+            CheckSelf(FInt64Vector2);
+            if (LuaObject::matchType(L, 2, "FInt64Vector2")) {
+                auto Other = LuaObject::checkValue<FInt64Vector2*>(L, 2);
+                if (!Other) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& OtherRef = *Other;
+                auto ret = __newFInt64Vector2();
+                *ret = (*self + OtherRef);
+                LuaObject::push<FInt64Vector2>(L, "FInt64Vector2", ret, UD_AUTOGC | UD_VALUETYPE);
+                return 1;
+            }
+            luaL_error(L, "FInt64Vector2 operator__add error, arg=%d", lua_typename(L, 2));
+            return 0;
+        }
+
+        static int add(lua_State* L) {
+            CheckSelf(FInt64Vector2);
+            if (LuaObject::matchType(L, 2, "FInt64Vector2")) {
+                auto Other = LuaObject::checkValue<FInt64Vector2*>(L, 2);
+                if (!Other) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& OtherRef = *Other;
+                *self = *self + OtherRef;
+                lua_pushvalue(L, 1);
+                return 1;
+            }
+            luaL_error(L, "FInt64Vector2 operator add error, arg=%d", lua_typename(L, 2));
+            return 0;
+        }
+
+        static int __sub(lua_State* L) {
+            CheckSelf(FInt64Vector2);
+            if (LuaObject::matchType(L, 2, "FInt64Vector2")) {
+                auto Other = LuaObject::checkValue<FInt64Vector2*>(L, 2);
+                if (!Other) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& OtherRef = *Other;
+                auto ret = __newFInt64Vector2();
+                *ret = (*self - OtherRef);
+                LuaObject::push<FInt64Vector2>(L, "FInt64Vector2", ret, UD_AUTOGC | UD_VALUETYPE);
+                return 1;
+            }
+            luaL_error(L, "FInt64Vector2 operator__sub error, arg=%d", lua_typename(L, 2));
+            return 0;
+        }
+
+        static int sub(lua_State* L) {
+            CheckSelf(FInt64Vector2);
+            if (LuaObject::matchType(L, 2, "FInt64Vector2")) {
+                auto Other = LuaObject::checkValue<FInt64Vector2*>(L, 2);
+                if (!Other) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& OtherRef = *Other;
+                *self = *self - OtherRef;
+                lua_pushvalue(L, 1);
+                return 1;
+            }
+            luaL_error(L, "FInt64Vector2 operator sub error, arg=%d", lua_typename(L, 2));
+            return 0;
+        }
+
+        static int get_X(lua_State* L) {
+            CheckSelf(FInt64Vector2);
+            auto& X = self->X;
+            LuaObject::push(L, X);
+            return 1;
+        }
+
+        static int set_X(lua_State* L) {
+            CheckSelf(FInt64Vector2);
+            auto& X = self->X;
+            CheckIfConst(FInt64Vector2)
+            auto XIn = LuaObject::checkValue<long long>(L, 2);
+            X = XIn;
+            LuaObject::push(L, XIn);
+            SLUA_MARK_NETPROP
+            return 1;
+        }
+
+        static int get_Y(lua_State* L) {
+            CheckSelf(FInt64Vector2);
+            auto& Y = self->Y;
+            LuaObject::push(L, Y);
+            return 1;
+        }
+
+        static int set_Y(lua_State* L) {
+            CheckSelf(FInt64Vector2);
+            auto& Y = self->Y;
+            CheckIfConst(FInt64Vector2)
+            auto YIn = LuaObject::checkValue<long long>(L, 2);
+            Y = YIn;
+            LuaObject::push(L, YIn);
+            SLUA_MARK_NETPROP
+            return 1;
+        }
+
+        static int get_ZeroValue(lua_State* L) {
+            auto& ZeroValue = FInt64Vector2::ZeroValue;
+            LuaObject::push<FInt64Vector2>(L, "FInt64Vector2", &ZeroValue, UD_VALUETYPE | UD_CONST);
+            return 1;
+        }
+
+        static int get_NoneValue(lua_State* L) {
+            auto& NoneValue = FInt64Vector2::NoneValue;
+            LuaObject::push<FInt64Vector2>(L, "FInt64Vector2", &NoneValue, UD_VALUETYPE | UD_CONST);
+            return 1;
+        }
+
+        static int IsZero(lua_State* L) {
+            {
+                CheckSelf(FInt64Vector2);
+                auto ret = self->IsZero();
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
+        static int ComponentMax(lua_State* L) {
+            {
+                CheckSelf(FInt64Vector2);
+                auto Other = LuaObject::checkValue<FInt64Vector2*>(L, 2);
+                if (!Other) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& OtherRef = *Other;
+                if (lua_isnoneornil(L, 3)) {
+                    auto ret = __newFInt64Vector2();
+                    *ret = self->ComponentMax(OtherRef);
+                    LuaObject::push<FInt64Vector2>(L, "FInt64Vector2", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FInt64Vector2*>(L, 3);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FInt64Vector2 type.", 3);
+                    *ret = self->ComponentMax(OtherRef);
+                    lua_pushvalue(L, 3);
+                }
+                return 1;
+            }
+        }
+
+        static int ComponentMin(lua_State* L) {
+            {
+                CheckSelf(FInt64Vector2);
+                auto Other = LuaObject::checkValue<FInt64Vector2*>(L, 2);
+                if (!Other) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& OtherRef = *Other;
+                if (lua_isnoneornil(L, 3)) {
+                    auto ret = __newFInt64Vector2();
+                    *ret = self->ComponentMin(OtherRef);
+                    LuaObject::push<FInt64Vector2>(L, "FInt64Vector2", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FInt64Vector2*>(L, 3);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FInt64Vector2 type.", 3);
+                    *ret = self->ComponentMin(OtherRef);
+                    lua_pushvalue(L, 3);
+                }
+                return 1;
+            }
+        }
+
+        static int AppendString(lua_State* L) {
+            {
+                CheckSelf(FInt64Vector2);
+                auto Out = LuaObject::checkValue<FString>(L, 2);
+                self->AppendString(Out);
+                LuaObject::push(L, Out);
+                return 1;
+            }
+        }
+
+        static int ToString(lua_State* L) {
+            {
+                CheckSelf(FInt64Vector2);
+                auto ret = self->ToString();
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
+        static int InitFromString(lua_State* L) {
+            {
+                CheckSelf(FInt64Vector2);
+                auto InSourceString = LuaObject::checkValue<FString>(L, 2);
+                auto ret = self->InitFromString(InSourceString);
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
+        static int DivideAndRoundUp(lua_State* L) {
+            {
+                auto Lhs = LuaObject::checkValue<FInt64Vector2*>(L, 1);
+                auto LhsVal = *Lhs;
+                auto Divisor = LuaObject::checkValue<int>(L, 2);
+                auto DivisorVal = (long long)Divisor;
+                if (lua_isnoneornil(L, 3)) {
+                    auto ret = __newFInt64Vector2();
+                    *ret = FInt64Vector2::DivideAndRoundUp(LhsVal, DivisorVal);
+                    LuaObject::push<FInt64Vector2>(L, "FInt64Vector2", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FInt64Vector2*>(L, 3);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FInt64Vector2 type.", 3);
+                    *ret = FInt64Vector2::DivideAndRoundUp(LhsVal, DivisorVal);
+                    lua_pushvalue(L, 3);
+                }
+                return 1;
+            }
+        }
+
+        static int Num(lua_State* L) {
+            {
+                auto ret = FInt64Vector2::Num();
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
+        static void bind(lua_State* L) {
+            AutoStack autoStack(L);
+            LuaObject::newType(L, "FInt64Vector2");
+            LuaObject::addOperator(L, "__eq", __eq);
+            LuaObject::addOperator(L, "__mul", __mul);
+            LuaObject::addOperator(L, "mul", mul);
+            LuaObject::addOperator(L, "__div", __div);
+            LuaObject::addOperator(L, "div", div);
+            LuaObject::addOperator(L, "__add", __add);
+            LuaObject::addOperator(L, "add", add);
+            LuaObject::addOperator(L, "__sub", __sub);
+            LuaObject::addOperator(L, "sub", sub);
+            LuaObject::addField(L, "X", get_X, set_X, true);
+            LuaObject::addField(L, "Y", get_Y, set_Y, true);
+            LuaObject::addField(L, "ZeroValue", get_ZeroValue, nullptr, false);
+            LuaObject::addField(L, "NoneValue", get_NoneValue, nullptr, false);
+            LuaObject::addMethod(L, "IsZero", IsZero, true);
+            LuaObject::addMethod(L, "ComponentMax", ComponentMax, true);
+            LuaObject::addMethod(L, "ComponentMin", ComponentMin, true);
+            LuaObject::addMethod(L, "AppendString", AppendString, true);
+            LuaObject::addMethod(L, "ToString", ToString, true);
+            LuaObject::addMethod(L, "InitFromString", InitFromString, true);
+            LuaObject::addMethod(L, "DivideAndRoundUp", DivideAndRoundUp, false);
+            LuaObject::addMethod(L, "Num", Num, false);
+            LuaObject::addMethod(L, "clone", clone, true);
+            LuaObject::finishType(L, "FInt64Vector2", __ctor, __gc);
         }
 
     };
@@ -2254,6 +2795,132 @@
             return 1;
         }
 
+        static int get_ZeroValue(lua_State* L) {
+            auto& ZeroValue = FIntVector4::ZeroValue;
+            LuaObject::push<FIntVector4>(L, "FIntVector4", &ZeroValue, UD_VALUETYPE | UD_CONST);
+            return 1;
+        }
+
+        static int get_NoneValue(lua_State* L) {
+            auto& NoneValue = FIntVector4::NoneValue;
+            LuaObject::push<FIntVector4>(L, "FIntVector4", &NoneValue, UD_VALUETYPE | UD_CONST);
+            return 1;
+        }
+
+        static int IsZero(lua_State* L) {
+            {
+                CheckSelf(FIntVector4);
+                auto ret = self->IsZero();
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
+        static int ComponentMax(lua_State* L) {
+            {
+                CheckSelf(FIntVector4);
+                auto Other = LuaObject::checkValue<FIntVector4*>(L, 2);
+                if (!Other) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& OtherRef = *Other;
+                if (lua_isnoneornil(L, 3)) {
+                    auto ret = __newFIntVector4();
+                    *ret = self->ComponentMax(OtherRef);
+                    LuaObject::push<FIntVector4>(L, "FIntVector4", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FIntVector4*>(L, 3);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FIntVector4 type.", 3);
+                    *ret = self->ComponentMax(OtherRef);
+                    lua_pushvalue(L, 3);
+                }
+                return 1;
+            }
+        }
+
+        static int ComponentMin(lua_State* L) {
+            {
+                CheckSelf(FIntVector4);
+                auto Other = LuaObject::checkValue<FIntVector4*>(L, 2);
+                if (!Other) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& OtherRef = *Other;
+                if (lua_isnoneornil(L, 3)) {
+                    auto ret = __newFIntVector4();
+                    *ret = self->ComponentMin(OtherRef);
+                    LuaObject::push<FIntVector4>(L, "FIntVector4", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FIntVector4*>(L, 3);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FIntVector4 type.", 3);
+                    *ret = self->ComponentMin(OtherRef);
+                    lua_pushvalue(L, 3);
+                }
+                return 1;
+            }
+        }
+
+        static int AppendString(lua_State* L) {
+            {
+                CheckSelf(FIntVector4);
+                auto Out = LuaObject::checkValue<FString>(L, 2);
+                self->AppendString(Out);
+                LuaObject::push(L, Out);
+                return 1;
+            }
+        }
+
+        static int ToString(lua_State* L) {
+            {
+                CheckSelf(FIntVector4);
+                auto ret = self->ToString();
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
+        static int InitFromString(lua_State* L) {
+            {
+                CheckSelf(FIntVector4);
+                auto InSourceString = LuaObject::checkValue<FString>(L, 2);
+                auto ret = self->InitFromString(InSourceString);
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
+        static int DivideAndRoundUp(lua_State* L) {
+            {
+                auto Lhs = LuaObject::checkValue<FIntVector4*>(L, 1);
+                auto LhsVal = *Lhs;
+                auto Divisor = LuaObject::checkValue<int>(L, 2);
+                if (lua_isnoneornil(L, 3)) {
+                    auto ret = __newFIntVector4();
+                    *ret = FIntVector4::DivideAndRoundUp(LhsVal, Divisor);
+                    LuaObject::push<FIntVector4>(L, "FIntVector4", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FIntVector4*>(L, 3);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FIntVector4 type.", 3);
+                    *ret = FIntVector4::DivideAndRoundUp(LhsVal, Divisor);
+                    lua_pushvalue(L, 3);
+                }
+                return 1;
+            }
+        }
+
+        static int Num(lua_State* L) {
+            {
+                auto ret = FIntVector4::Num();
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
         static void bind(lua_State* L) {
             AutoStack autoStack(L);
             LuaObject::newType(L, "FIntVector4");
@@ -2270,6 +2937,16 @@
             LuaObject::addField(L, "Y", get_Y, set_Y, true);
             LuaObject::addField(L, "Z", get_Z, set_Z, true);
             LuaObject::addField(L, "W", get_W, set_W, true);
+            LuaObject::addField(L, "ZeroValue", get_ZeroValue, nullptr, false);
+            LuaObject::addField(L, "NoneValue", get_NoneValue, nullptr, false);
+            LuaObject::addMethod(L, "IsZero", IsZero, true);
+            LuaObject::addMethod(L, "ComponentMax", ComponentMax, true);
+            LuaObject::addMethod(L, "ComponentMin", ComponentMin, true);
+            LuaObject::addMethod(L, "AppendString", AppendString, true);
+            LuaObject::addMethod(L, "ToString", ToString, true);
+            LuaObject::addMethod(L, "InitFromString", InitFromString, true);
+            LuaObject::addMethod(L, "DivideAndRoundUp", DivideAndRoundUp, false);
+            LuaObject::addMethod(L, "Num", Num, false);
             LuaObject::addMethod(L, "clone", clone, true);
             LuaObject::finishType(L, "FIntVector4", __ctor, __gc);
         }
@@ -3069,6 +3746,27 @@
             }
         }
 
+        static int IntToDistinctColor(lua_State* L) {
+            {
+                auto Seed = LuaObject::checkValue<int>(L, 1);
+                auto Saturation = LuaObject::checkValue<float>(L, 2);
+                auto Value = LuaObject::checkValue<float>(L, 3);
+                auto HueRotation = LuaObject::checkValue<float>(L, 4);
+                if (lua_isnoneornil(L, 5)) {
+                    auto ret = __newFLinearColor();
+                    *ret = FLinearColor::IntToDistinctColor(Seed, Saturation, Value, HueRotation);
+                    LuaObject::push<FLinearColor>(L, "FLinearColor", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FLinearColor*>(L, 5);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FLinearColor type.", 5);
+                    *ret = FLinearColor::IntToDistinctColor(Seed, Saturation, Value, HueRotation);
+                    lua_pushvalue(L, 5);
+                }
+                return 1;
+            }
+        }
+
         static void bind(lua_State* L) {
             AutoStack autoStack(L);
             LuaObject::newType(L, "FLinearColor");
@@ -3120,6 +3818,7 @@
             LuaObject::addMethod(L, "Dist", Dist, false);
             LuaObject::addMethod(L, "LerpUsingHSV", LerpUsingHSV, false);
             LuaObject::addMethod(L, "Clamp01NansTo0", Clamp01NansTo0, false);
+            LuaObject::addMethod(L, "IntToDistinctColor", IntToDistinctColor, false);
             LuaObject::addMethod(L, "clone", clone, true);
             LuaObject::finishType(L, "FLinearColor", __ctor, __gc);
         }
@@ -5109,7 +5808,7 @@
 
         static int Exclusive(lua_State* L) {
             {
-                auto Value = LuaObject::checkValue<float>(L, 1);
+                auto Value = LuaObject::checkValue<int>(L, 1);
                 if (lua_isnoneornil(L, 2)) {
                     auto ret = __newFFloatRangeBound();
                     *ret = FFloatRangeBound::Exclusive(Value);
@@ -5127,7 +5826,7 @@
 
         static int Inclusive(lua_State* L) {
             {
-                auto Value = LuaObject::checkValue<float>(L, 1);
+                auto Value = LuaObject::checkValue<int>(L, 1);
                 if (lua_isnoneornil(L, 2)) {
                     auto ret = __newFFloatRangeBound();
                     *ret = FFloatRangeBound::Inclusive(Value);
@@ -5326,14 +6025,14 @@
                 return 1;
             }
             if (argc == 2) {
-                auto A = LuaObject::checkValue<float>(L, 2);
+                auto A = LuaObject::checkValue<int>(L, 2);
                 auto self = new FFloatRange(A);
                 LuaObject::push<FFloatRange>(L, "FFloatRange", self, UD_AUTOGC | UD_VALUETYPE);
                 return 1;
             }
             if (argc == 3) {
-                auto A = LuaObject::checkValue<float>(L, 2);
-                auto B = LuaObject::checkValue<float>(L, 3);
+                auto A = LuaObject::checkValue<int>(L, 2);
+                auto B = LuaObject::checkValue<int>(L, 3);
                 auto self = new FFloatRange(A, B);
                 LuaObject::push<FFloatRange>(L, "FFloatRange", self, UD_AUTOGC | UD_VALUETYPE);
                 return 1;
@@ -5392,7 +6091,7 @@
 
         static int AtLeast(lua_State* L) {
             {
-                auto Value = LuaObject::checkValue<float>(L, 1);
+                auto Value = LuaObject::checkValue<int>(L, 1);
                 if (lua_isnoneornil(L, 2)) {
                     auto ret = __newFFloatRange();
                     *ret = FFloatRange::AtLeast(Value);
@@ -5410,7 +6109,7 @@
 
         static int AtMost(lua_State* L) {
             {
-                auto Value = LuaObject::checkValue<float>(L, 1);
+                auto Value = LuaObject::checkValue<int>(L, 1);
                 if (lua_isnoneornil(L, 2)) {
                     auto ret = __newFFloatRange();
                     *ret = FFloatRange::AtMost(Value);
@@ -5474,7 +6173,7 @@
 
         static int Exclusive(lua_State* L) {
             {
-                auto Value = LuaObject::checkValue<double>(L, 1);
+                auto Value = LuaObject::checkValue<int>(L, 1);
                 if (lua_isnoneornil(L, 2)) {
                     auto ret = __newFDoubleRangeBound();
                     *ret = FDoubleRangeBound::Exclusive(Value);
@@ -5492,7 +6191,7 @@
 
         static int Inclusive(lua_State* L) {
             {
-                auto Value = LuaObject::checkValue<double>(L, 1);
+                auto Value = LuaObject::checkValue<int>(L, 1);
                 if (lua_isnoneornil(L, 2)) {
                     auto ret = __newFDoubleRangeBound();
                     *ret = FDoubleRangeBound::Inclusive(Value);
@@ -5691,14 +6390,14 @@
                 return 1;
             }
             if (argc == 2) {
-                auto A = LuaObject::checkValue<double>(L, 2);
+                auto A = LuaObject::checkValue<int>(L, 2);
                 auto self = new FDoubleRange(A);
                 LuaObject::push<FDoubleRange>(L, "FDoubleRange", self, UD_AUTOGC | UD_VALUETYPE);
                 return 1;
             }
             if (argc == 3) {
-                auto A = LuaObject::checkValue<double>(L, 2);
-                auto B = LuaObject::checkValue<double>(L, 3);
+                auto A = LuaObject::checkValue<int>(L, 2);
+                auto B = LuaObject::checkValue<int>(L, 3);
                 auto self = new FDoubleRange(A, B);
                 LuaObject::push<FDoubleRange>(L, "FDoubleRange", self, UD_AUTOGC | UD_VALUETYPE);
                 return 1;
@@ -5757,7 +6456,7 @@
 
         static int AtLeast(lua_State* L) {
             {
-                auto Value = LuaObject::checkValue<double>(L, 1);
+                auto Value = LuaObject::checkValue<int>(L, 1);
                 if (lua_isnoneornil(L, 2)) {
                     auto ret = __newFDoubleRange();
                     *ret = FDoubleRange::AtLeast(Value);
@@ -5775,7 +6474,7 @@
 
         static int AtMost(lua_State* L) {
             {
-                auto Value = LuaObject::checkValue<double>(L, 1);
+                auto Value = LuaObject::checkValue<int>(L, 1);
                 if (lua_isnoneornil(L, 2)) {
                     auto ret = __newFDoubleRange();
                     *ret = FDoubleRange::AtMost(Value);
@@ -6548,6 +7247,289 @@
 
     };
 
+    struct FFrameRateWrapper {
+
+        static int __ctor(lua_State* L) {
+            auto argc = lua_gettop(L);
+            if (argc == 1) {
+                auto self = new FFrameRate();
+                LuaObject::push<FFrameRate>(L, "FFrameRate", self, UD_AUTOGC | UD_VALUETYPE);
+                return 1;
+            }
+            if (argc == 3) {
+                auto InNumerator = LuaObject::checkValue<int>(L, 2);
+                auto InNumeratorVal = (unsigned int)InNumerator;
+                auto InDenominator = LuaObject::checkValue<int>(L, 3);
+                auto InDenominatorVal = (unsigned int)InDenominator;
+                auto self = new FFrameRate(InNumeratorVal, InDenominatorVal);
+                LuaObject::push<FFrameRate>(L, "FFrameRate", self, UD_AUTOGC | UD_VALUETYPE);
+                return 1;
+            }
+            luaL_error(L, "call FFrameRate() error, argc=%d", argc);
+            return 0;
+        }
+
+        static int clone(lua_State* L) {
+            CheckSelf(FFrameRate);
+            auto ret = __newFFrameRate();
+            *ret = *self;
+            LuaObject::push<FFrameRate>(L, "FFrameRate", ret, UD_AUTOGC | UD_VALUETYPE);
+            return 1;
+        }
+
+        static int __gc(lua_State* L) {
+            CheckSelfSafe(FFrameRate);
+            SLUA_GCSTRUCT(FFrameRate);
+            return 0;
+        }
+
+        static int get_Numerator(lua_State* L) {
+            CheckSelf(FFrameRate);
+            auto& Numerator = self->Numerator;
+            LuaObject::push(L, Numerator);
+            return 1;
+        }
+
+        static int set_Numerator(lua_State* L) {
+            CheckSelf(FFrameRate);
+            auto& Numerator = self->Numerator;
+            CheckIfConst(FFrameRate)
+            auto NumeratorIn = LuaObject::checkValue<int32>(L, 2);
+            Numerator = NumeratorIn;
+            LuaObject::push(L, NumeratorIn);
+            SLUA_MARK_NETPROP
+            return 1;
+        }
+
+        static int get_Denominator(lua_State* L) {
+            CheckSelf(FFrameRate);
+            auto& Denominator = self->Denominator;
+            LuaObject::push(L, Denominator);
+            return 1;
+        }
+
+        static int set_Denominator(lua_State* L) {
+            CheckSelf(FFrameRate);
+            auto& Denominator = self->Denominator;
+            CheckIfConst(FFrameRate)
+            auto DenominatorIn = LuaObject::checkValue<int32>(L, 2);
+            Denominator = DenominatorIn;
+            LuaObject::push(L, DenominatorIn);
+            SLUA_MARK_NETPROP
+            return 1;
+        }
+
+        static int IsValid(lua_State* L) {
+            {
+                CheckSelf(FFrameRate);
+                auto ret = self->IsValid();
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
+        static int AsInterval(lua_State* L) {
+            {
+                CheckSelf(FFrameRate);
+                auto ret = self->AsInterval();
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
+        static int AsDecimal(lua_State* L) {
+            {
+                CheckSelf(FFrameRate);
+                auto ret = self->AsDecimal();
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
+        static int AsSeconds(lua_State* L) {
+            {
+                CheckSelf(FFrameRate);
+                auto FrameNumber = LuaObject::checkValue<FFrameTime*>(L, 2);
+                auto FrameNumberVal = *FrameNumber;
+                auto ret = self->AsSeconds(FrameNumberVal);
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
+        static int AsFrameTime(lua_State* L) {
+            {
+                CheckSelf(FFrameRate);
+                auto InTimeSeconds = LuaObject::checkValue<double>(L, 2);
+                if (lua_isnoneornil(L, 3)) {
+                    auto ret = __newFFrameTime();
+                    *ret = self->AsFrameTime(InTimeSeconds);
+                    LuaObject::push<FFrameTime>(L, "FFrameTime", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FFrameTime*>(L, 3);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FFrameTime type.", 3);
+                    *ret = self->AsFrameTime(InTimeSeconds);
+                    lua_pushvalue(L, 3);
+                }
+                return 1;
+            }
+        }
+
+        static int AsFrameNumber(lua_State* L) {
+            {
+                CheckSelf(FFrameRate);
+                auto InTimeSeconds = LuaObject::checkValue<double>(L, 2);
+                if (lua_isnoneornil(L, 3)) {
+                    auto ret = __newFFrameNumber();
+                    *ret = self->AsFrameNumber(InTimeSeconds);
+                    LuaObject::push<FFrameNumber>(L, "FFrameNumber", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FFrameNumber*>(L, 3);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FFrameNumber type.", 3);
+                    *ret = self->AsFrameNumber(InTimeSeconds);
+                    lua_pushvalue(L, 3);
+                }
+                return 1;
+            }
+        }
+
+        static int IsMultipleOf(lua_State* L) {
+            {
+                CheckSelf(FFrameRate);
+                auto Other = LuaObject::checkValue<FFrameRate*>(L, 2);
+                auto OtherVal = *Other;
+                auto ret = self->IsMultipleOf(OtherVal);
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
+        static int IsFactorOf(lua_State* L) {
+            {
+                CheckSelf(FFrameRate);
+                auto Other = LuaObject::checkValue<FFrameRate*>(L, 2);
+                auto OtherVal = *Other;
+                auto ret = self->IsFactorOf(OtherVal);
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
+        static int ComputeGridSpacing(lua_State* L) {
+            {
+                CheckSelf(FFrameRate);
+                auto PixelsPerSecond = LuaObject::checkValue<float>(L, 2);
+                auto OutMajorInterval = LuaObject::checkValue<double>(L, 3);
+                auto OutMinorDivisions = LuaObject::checkValue<int>(L, 4);
+                auto MinTickPx = LuaObject::checkValue<float>(L, 5);
+                auto DesiredMajorTickPx = LuaObject::checkValue<float>(L, 6);
+                auto ret = self->ComputeGridSpacing(PixelsPerSecond, OutMajorInterval, OutMinorDivisions, MinTickPx, DesiredMajorTickPx);
+                LuaObject::push(L, ret);
+                LuaObject::push(L, OutMajorInterval);
+                LuaObject::push(L, OutMinorDivisions);
+                return 3;
+            }
+        }
+
+        static int MaxSeconds(lua_State* L) {
+            {
+                CheckSelf(FFrameRate);
+                auto ret = self->MaxSeconds();
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
+        static int Reciprocal(lua_State* L) {
+            {
+                CheckSelf(FFrameRate);
+                if (lua_isnoneornil(L, 2)) {
+                    auto ret = __newFFrameRate();
+                    *ret = self->Reciprocal();
+                    LuaObject::push<FFrameRate>(L, "FFrameRate", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FFrameRate*>(L, 2);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FFrameRate type.", 2);
+                    *ret = self->Reciprocal();
+                    lua_pushvalue(L, 2);
+                }
+                return 1;
+            }
+        }
+
+        static int TransformTime(lua_State* L) {
+            {
+                auto SourceTime = LuaObject::checkValue<FFrameTime*>(L, 1);
+                auto SourceTimeVal = *SourceTime;
+                auto SourceRate = LuaObject::checkValue<FFrameRate*>(L, 2);
+                auto SourceRateVal = *SourceRate;
+                auto DestinationRate = LuaObject::checkValue<FFrameRate*>(L, 3);
+                auto DestinationRateVal = *DestinationRate;
+                if (lua_isnoneornil(L, 4)) {
+                    auto ret = __newFFrameTime();
+                    *ret = FFrameRate::TransformTime(SourceTimeVal, SourceRateVal, DestinationRateVal);
+                    LuaObject::push<FFrameTime>(L, "FFrameTime", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FFrameTime*>(L, 4);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FFrameTime type.", 4);
+                    *ret = FFrameRate::TransformTime(SourceTimeVal, SourceRateVal, DestinationRateVal);
+                    lua_pushvalue(L, 4);
+                }
+                return 1;
+            }
+        }
+
+        static int Snap(lua_State* L) {
+            {
+                auto SourceTime = LuaObject::checkValue<FFrameTime*>(L, 1);
+                auto SourceTimeVal = *SourceTime;
+                auto SourceRate = LuaObject::checkValue<FFrameRate*>(L, 2);
+                auto SourceRateVal = *SourceRate;
+                auto SnapToRate = LuaObject::checkValue<FFrameRate*>(L, 3);
+                auto SnapToRateVal = *SnapToRate;
+                if (lua_isnoneornil(L, 4)) {
+                    auto ret = __newFFrameTime();
+                    *ret = FFrameRate::Snap(SourceTimeVal, SourceRateVal, SnapToRateVal);
+                    LuaObject::push<FFrameTime>(L, "FFrameTime", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FFrameTime*>(L, 4);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FFrameTime type.", 4);
+                    *ret = FFrameRate::Snap(SourceTimeVal, SourceRateVal, SnapToRateVal);
+                    lua_pushvalue(L, 4);
+                }
+                return 1;
+            }
+        }
+
+        static void bind(lua_State* L) {
+            AutoStack autoStack(L);
+            LuaObject::newType(L, "FFrameRate");
+            LuaObject::addField(L, "Numerator", get_Numerator, set_Numerator, true);
+            LuaObject::addField(L, "Denominator", get_Denominator, set_Denominator, true);
+            LuaObject::addMethod(L, "IsValid", IsValid, true);
+            LuaObject::addMethod(L, "AsInterval", AsInterval, true);
+            LuaObject::addMethod(L, "AsDecimal", AsDecimal, true);
+            LuaObject::addMethod(L, "AsSeconds", AsSeconds, true);
+            LuaObject::addMethod(L, "AsFrameTime", AsFrameTime, true);
+            LuaObject::addMethod(L, "AsFrameNumber", AsFrameNumber, true);
+            LuaObject::addMethod(L, "IsMultipleOf", IsMultipleOf, true);
+            LuaObject::addMethod(L, "IsFactorOf", IsFactorOf, true);
+            LuaObject::addMethod(L, "ComputeGridSpacing", ComputeGridSpacing, true);
+            LuaObject::addMethod(L, "MaxSeconds", MaxSeconds, true);
+            LuaObject::addMethod(L, "Reciprocal", Reciprocal, true);
+            LuaObject::addMethod(L, "TransformTime", TransformTime, false);
+            LuaObject::addMethod(L, "Snap", Snap, false);
+            LuaObject::addMethod(L, "clone", clone, true);
+            LuaObject::finishType(L, "FFrameRate", __ctor, __gc);
+        }
+
+    };
+
     struct FSoftObjectPathWrapper {
 
         static int __ctor(lua_State* L) {
@@ -6819,18 +7801,21 @@
             }
         }
 
-        static int GetCurrentTag(lua_State* L) {
+        static int ConstructFromAssetPath(lua_State* L) {
             {
-                auto ret = FSoftObjectPath::GetCurrentTag();
-                LuaObject::push(L, ret);
-                return 1;
-            }
-        }
-
-        static int InvalidateTag(lua_State* L) {
-            {
-                auto ret = FSoftObjectPath::InvalidateTag();
-                LuaObject::push(L, ret);
+                auto InAssetPath = LuaObject::checkValue<FTopLevelAssetPath*>(L, 1);
+                auto InAssetPathVal = *InAssetPath;
+                if (lua_isnoneornil(L, 2)) {
+                    auto ret = __newFSoftObjectPath();
+                    *ret = FSoftObjectPath::ConstructFromAssetPath(InAssetPathVal);
+                    LuaObject::push<FSoftObjectPath>(L, "FSoftObjectPath", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FSoftObjectPath*>(L, 2);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FSoftObjectPath type.", 2);
+                    *ret = FSoftObjectPath::ConstructFromAssetPath(InAssetPathVal);
+                    lua_pushvalue(L, 2);
+                }
                 return 1;
             }
         }
@@ -6864,8 +7849,7 @@
             LuaObject::addMethod(L, "LexicalLess", LexicalLess, true);
             LuaObject::addMethod(L, "FastLess", FastLess, true);
             LuaObject::addMethod(L, "FixupCoreRedirects", FixupCoreRedirects, true);
-            LuaObject::addMethod(L, "GetCurrentTag", GetCurrentTag, false);
-            LuaObject::addMethod(L, "InvalidateTag", InvalidateTag, false);
+            LuaObject::addMethod(L, "ConstructFromAssetPath", ConstructFromAssetPath, false);
             LuaObject::addMethod(L, "ClearPIEPackageNames", ClearPIEPackageNames, false);
             LuaObject::addMethod(L, "clone", clone, true);
             LuaObject::finishType(L, "FSoftObjectPath", __ctor, __gc);
@@ -8674,6 +9658,41 @@
             }
         }
 
+        static int Clamp(lua_State* L) {
+            {
+                auto V = LuaObject::checkValue<FVector2D*>(L, 1);
+                if (!V) {
+                    luaL_error(L, "%s argument 1 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& VRef = *V;
+                auto MinValue = LuaObject::checkValue<FVector2D*>(L, 2);
+                if (!MinValue) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& MinValueRef = *MinValue;
+                auto MaxValue = LuaObject::checkValue<FVector2D*>(L, 3);
+                if (!MaxValue) {
+                    luaL_error(L, "%s argument 3 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& MaxValueRef = *MaxValue;
+                if (lua_isnoneornil(L, 4)) {
+                    auto ret = __newFVector2D();
+                    *ret = FVector2D::Clamp(VRef, MinValueRef, MaxValueRef);
+                    LuaObject::push<FVector2D>(L, "FVector2D", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FVector2D*>(L, 4);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FVector2D type.", 4);
+                    *ret = FVector2D::Clamp(VRef, MinValueRef, MaxValueRef);
+                    lua_pushvalue(L, 4);
+                }
+                return 1;
+            }
+        }
+
         static void bind(lua_State* L) {
             AutoStack autoStack(L);
             LuaObject::newType(L, "FVector2D");
@@ -8719,6 +9738,7 @@
             LuaObject::addMethod(L, "UnitY", UnitY, false);
             LuaObject::addMethod(L, "Max", Max, false);
             LuaObject::addMethod(L, "Min", Min, false);
+            LuaObject::addMethod(L, "Clamp", Clamp, false);
             LuaObject::addMethod(L, "clone", clone, true);
             LuaObject::finishType(L, "FVector2D", __ctor, __gc);
         }
@@ -8788,13 +9808,6 @@
                 LuaObject::push<FVector>(L, "FVector", ret, UD_AUTOGC | UD_VALUETYPE);
                 return 1;
             }
-            if (lua_isnumber(L, 2)) {
-                auto Bias = LuaObject::checkValue<double>(L, 2);
-                auto ret = __newFVector();
-                *ret = (*self + Bias);
-                LuaObject::push<FVector>(L, "FVector", ret, UD_AUTOGC | UD_VALUETYPE);
-                return 1;
-            }
             luaL_error(L, "FVector operator__add error, arg=%d", lua_typename(L, 2));
             return 0;
         }
@@ -8809,12 +9822,6 @@
                 }
                 auto& VRef = *V;
                 *self = *self + VRef;
-                lua_pushvalue(L, 1);
-                return 1;
-            }
-            if (lua_isnumber(L, 2)) {
-                auto Bias = LuaObject::checkValue<double>(L, 2);
-                *self = *self + Bias;
                 lua_pushvalue(L, 1);
                 return 1;
             }
@@ -8836,13 +9843,6 @@
                 LuaObject::push<FVector>(L, "FVector", ret, UD_AUTOGC | UD_VALUETYPE);
                 return 1;
             }
-            if (lua_isnumber(L, 2)) {
-                auto Bias = LuaObject::checkValue<double>(L, 2);
-                auto ret = __newFVector();
-                *ret = (*self - Bias);
-                LuaObject::push<FVector>(L, "FVector", ret, UD_AUTOGC | UD_VALUETYPE);
-                return 1;
-            }
             luaL_error(L, "FVector operator__sub error, arg=%d", lua_typename(L, 2));
             return 0;
         }
@@ -8860,25 +9860,12 @@
                 lua_pushvalue(L, 1);
                 return 1;
             }
-            if (lua_isnumber(L, 2)) {
-                auto Bias = LuaObject::checkValue<double>(L, 2);
-                *self = *self - Bias;
-                lua_pushvalue(L, 1);
-                return 1;
-            }
             luaL_error(L, "FVector operator sub error, arg=%d", lua_typename(L, 2));
             return 0;
         }
 
         static int __mul(lua_State* L) {
             CheckSelf(FVector);
-            if (lua_isnumber(L, 2)) {
-                auto Scale = LuaObject::checkValue<double>(L, 2);
-                auto ret = __newFVector();
-                *ret = (*self * Scale);
-                LuaObject::push<FVector>(L, "FVector", ret, UD_AUTOGC | UD_VALUETYPE);
-                return 1;
-            }
             if (LuaObject::matchType(L, 2, "FVector")) {
                 auto V = LuaObject::checkValue<FVector*>(L, 2);
                 if (!V) {
@@ -8897,12 +9884,6 @@
 
         static int mul(lua_State* L) {
             CheckSelf(FVector);
-            if (lua_isnumber(L, 2)) {
-                auto Scale = LuaObject::checkValue<double>(L, 2);
-                *self = *self * Scale;
-                lua_pushvalue(L, 1);
-                return 1;
-            }
             if (LuaObject::matchType(L, 2, "FVector")) {
                 auto V = LuaObject::checkValue<FVector*>(L, 2);
                 if (!V) {
@@ -8920,13 +9901,6 @@
 
         static int __div(lua_State* L) {
             CheckSelf(FVector);
-            if (lua_isnumber(L, 2)) {
-                auto Scale = LuaObject::checkValue<double>(L, 2);
-                auto ret = __newFVector();
-                *ret = (*self / Scale);
-                LuaObject::push<FVector>(L, "FVector", ret, UD_AUTOGC | UD_VALUETYPE);
-                return 1;
-            }
             if (LuaObject::matchType(L, 2, "FVector")) {
                 auto V = LuaObject::checkValue<FVector*>(L, 2);
                 if (!V) {
@@ -8945,12 +9919,6 @@
 
         static int div(lua_State* L) {
             CheckSelf(FVector);
-            if (lua_isnumber(L, 2)) {
-                auto Scale = LuaObject::checkValue<double>(L, 2);
-                *self = *self / Scale;
-                lua_pushvalue(L, 1);
-                return 1;
-            }
             if (LuaObject::matchType(L, 2, "FVector")) {
                 auto V = LuaObject::checkValue<FVector*>(L, 2);
                 if (!V) {
@@ -10789,63 +11757,8 @@
             return 0;
         }
 
-        static int __mul(lua_State* L) {
-            CheckSelf(FVector4);
-            if (lua_isnumber(L, 2)) {
-                auto Scale = LuaObject::checkValue<double>(L, 2);
-                auto ret = __newFVector4();
-                *ret = (*self * Scale);
-                LuaObject::push<FVector4>(L, "FVector4", ret, UD_AUTOGC | UD_VALUETYPE);
-                return 1;
-            }
-            if (LuaObject::matchType(L, 2, "FVector4")) {
-                auto V = LuaObject::checkValue<FVector4*>(L, 2);
-                if (!V) {
-                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
-                    return 0;
-                }
-                auto& VRef = *V;
-                auto ret = __newFVector4();
-                *ret = (*self * VRef);
-                LuaObject::push<FVector4>(L, "FVector4", ret, UD_AUTOGC | UD_VALUETYPE);
-                return 1;
-            }
-            luaL_error(L, "FVector4 operator__mul error, arg=%d", lua_typename(L, 2));
-            return 0;
-        }
-
-        static int mul(lua_State* L) {
-            CheckSelf(FVector4);
-            if (lua_isnumber(L, 2)) {
-                auto Scale = LuaObject::checkValue<double>(L, 2);
-                *self = *self * Scale;
-                lua_pushvalue(L, 1);
-                return 1;
-            }
-            if (LuaObject::matchType(L, 2, "FVector4")) {
-                auto V = LuaObject::checkValue<FVector4*>(L, 2);
-                if (!V) {
-                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
-                    return 0;
-                }
-                auto& VRef = *V;
-                *self = *self * VRef;
-                lua_pushvalue(L, 1);
-                return 1;
-            }
-            luaL_error(L, "FVector4 operator mul error, arg=%d", lua_typename(L, 2));
-            return 0;
-        }
-
         static int __div(lua_State* L) {
             CheckSelf(FVector4);
-            if (lua_isnumber(L, 2)) {
-                auto Scale = LuaObject::checkValue<double>(L, 2);
-                auto ret = __newFVector4();
-                *ret = (*self / Scale);
-                LuaObject::push<FVector4>(L, "FVector4", ret, UD_AUTOGC | UD_VALUETYPE);
-                return 1;
-            }
             if (LuaObject::matchType(L, 2, "FVector4")) {
                 auto V = LuaObject::checkValue<FVector4*>(L, 2);
                 if (!V) {
@@ -10864,12 +11777,6 @@
 
         static int div(lua_State* L) {
             CheckSelf(FVector4);
-            if (lua_isnumber(L, 2)) {
-                auto Scale = LuaObject::checkValue<double>(L, 2);
-                *self = *self / Scale;
-                lua_pushvalue(L, 1);
-                return 1;
-            }
             if (LuaObject::matchType(L, 2, "FVector4")) {
                 auto V = LuaObject::checkValue<FVector4*>(L, 2);
                 if (!V) {
@@ -10882,6 +11789,41 @@
                 return 1;
             }
             luaL_error(L, "FVector4 operator div error, arg=%d", lua_typename(L, 2));
+            return 0;
+        }
+
+        static int __mul(lua_State* L) {
+            CheckSelf(FVector4);
+            if (LuaObject::matchType(L, 2, "FVector4")) {
+                auto V = LuaObject::checkValue<FVector4*>(L, 2);
+                if (!V) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& VRef = *V;
+                auto ret = __newFVector4();
+                *ret = (*self * VRef);
+                LuaObject::push<FVector4>(L, "FVector4", ret, UD_AUTOGC | UD_VALUETYPE);
+                return 1;
+            }
+            luaL_error(L, "FVector4 operator__mul error, arg=%d", lua_typename(L, 2));
+            return 0;
+        }
+
+        static int mul(lua_State* L) {
+            CheckSelf(FVector4);
+            if (LuaObject::matchType(L, 2, "FVector4")) {
+                auto V = LuaObject::checkValue<FVector4*>(L, 2);
+                if (!V) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& VRef = *V;
+                *self = *self * VRef;
+                lua_pushvalue(L, 1);
+                return 1;
+            }
+            luaL_error(L, "FVector4 operator mul error, arg=%d", lua_typename(L, 2));
             return 0;
         }
 
@@ -11236,10 +12178,10 @@
             LuaObject::addOperator(L, "add", add);
             LuaObject::addOperator(L, "__sub", __sub);
             LuaObject::addOperator(L, "sub", sub);
-            LuaObject::addOperator(L, "__mul", __mul);
-            LuaObject::addOperator(L, "mul", mul);
             LuaObject::addOperator(L, "__div", __div);
             LuaObject::addOperator(L, "div", div);
+            LuaObject::addOperator(L, "__mul", __mul);
+            LuaObject::addOperator(L, "mul", mul);
             LuaObject::addOperator(L, "__eq", __eq);
             LuaObject::addField(L, "X", get_X, set_X, true);
             LuaObject::addField(L, "Y", get_Y, set_Y, true);
@@ -11876,13 +12818,6 @@
                 LuaObject::push<FMatrix>(L, "FMatrix", ret, UD_AUTOGC | UD_VALUETYPE);
                 return 1;
             }
-            if (lua_isnumber(L, 2)) {
-                auto Scale = LuaObject::checkValue<double>(L, 2);
-                auto ret = __newFQuat();
-                *ret = (*self * Scale);
-                LuaObject::push<FQuat>(L, "FQuat", ret, UD_AUTOGC | UD_VALUETYPE);
-                return 1;
-            }
             luaL_error(L, "FQuat operator__mul error, arg=%d", lua_typename(L, 2));
             return 0;
         }
@@ -11900,38 +12835,7 @@
                 lua_pushvalue(L, 1);
                 return 1;
             }
-            if (lua_isnumber(L, 2)) {
-                auto Scale = LuaObject::checkValue<double>(L, 2);
-                *self = *self * Scale;
-                lua_pushvalue(L, 1);
-                return 1;
-            }
             luaL_error(L, "FQuat operator mul error, arg=%d", lua_typename(L, 2));
-            return 0;
-        }
-
-        static int __div(lua_State* L) {
-            CheckSelf(FQuat);
-            if (lua_isnumber(L, 2)) {
-                auto Scale = LuaObject::checkValue<double>(L, 2);
-                auto ret = __newFQuat();
-                *ret = (*self / Scale);
-                LuaObject::push<FQuat>(L, "FQuat", ret, UD_AUTOGC | UD_VALUETYPE);
-                return 1;
-            }
-            luaL_error(L, "FQuat operator__div error, arg=%d", lua_typename(L, 2));
-            return 0;
-        }
-
-        static int div(lua_State* L) {
-            CheckSelf(FQuat);
-            if (lua_isnumber(L, 2)) {
-                auto Scale = LuaObject::checkValue<double>(L, 2);
-                *self = *self / Scale;
-                lua_pushvalue(L, 1);
-                return 1;
-            }
-            luaL_error(L, "FQuat operator div error, arg=%d", lua_typename(L, 2));
             return 0;
         }
 
@@ -12990,8 +13894,6 @@
             LuaObject::addOperator(L, "sub", sub);
             LuaObject::addOperator(L, "__mul", __mul);
             LuaObject::addOperator(L, "mul", mul);
-            LuaObject::addOperator(L, "__div", __div);
-            LuaObject::addOperator(L, "div", div);
             LuaObject::addOperator(L, "__eq", __eq);
             LuaObject::addField(L, "X", get_X, set_X, true);
             LuaObject::addField(L, "Y", get_Y, set_Y, true);
@@ -13159,31 +14061,6 @@
             return 0;
         }
 
-        static int __mul(lua_State* L) {
-            CheckSelf(FRotator);
-            if (lua_isnumber(L, 2)) {
-                auto Scale = LuaObject::checkValue<double>(L, 2);
-                auto ret = __newFRotator();
-                *ret = (*self * Scale);
-                LuaObject::push<FRotator>(L, "FRotator", ret, UD_AUTOGC | UD_VALUETYPE);
-                return 1;
-            }
-            luaL_error(L, "FRotator operator__mul error, arg=%d", lua_typename(L, 2));
-            return 0;
-        }
-
-        static int mul(lua_State* L) {
-            CheckSelf(FRotator);
-            if (lua_isnumber(L, 2)) {
-                auto Scale = LuaObject::checkValue<double>(L, 2);
-                *self = *self * Scale;
-                lua_pushvalue(L, 1);
-                return 1;
-            }
-            luaL_error(L, "FRotator operator mul error, arg=%d", lua_typename(L, 2));
-            return 0;
-        }
-
         static int __eq(lua_State* L) {
             CheckSelf(FRotator);
             if (LuaObject::matchType(L, 2, "FRotator")) {
@@ -13309,6 +14186,22 @@
                 auto& RRef = *R;
                 auto Tolerance = LuaObject::checkValue<double>(L, 3);
                 auto ret = self->Equals(RRef, Tolerance);
+                LuaObject::push(L, ret);
+                return 1;
+            }
+        }
+
+        static int EqualsOrientation(lua_State* L) {
+            {
+                CheckSelf(FRotator);
+                auto R = LuaObject::checkValue<FRotator*>(L, 2);
+                if (!R) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& RRef = *R;
+                auto Tolerance = LuaObject::checkValue<double>(L, 3);
+                auto ret = self->EqualsOrientation(RRef, Tolerance);
                 LuaObject::push(L, ret);
                 return 1;
             }
@@ -13692,8 +14585,6 @@
             LuaObject::addOperator(L, "add", add);
             LuaObject::addOperator(L, "__sub", __sub);
             LuaObject::addOperator(L, "sub", sub);
-            LuaObject::addOperator(L, "__mul", __mul);
-            LuaObject::addOperator(L, "mul", mul);
             LuaObject::addOperator(L, "__eq", __eq);
             LuaObject::addField(L, "Pitch", get_Pitch, set_Pitch, true);
             LuaObject::addField(L, "Yaw", get_Yaw, set_Yaw, true);
@@ -13703,6 +14594,7 @@
             LuaObject::addMethod(L, "IsNearlyZero", IsNearlyZero, true);
             LuaObject::addMethod(L, "IsZero", IsZero, true);
             LuaObject::addMethod(L, "Equals", Equals, true);
+            LuaObject::addMethod(L, "EqualsOrientation", EqualsOrientation, true);
             LuaObject::addMethod(L, "Add", Add, true);
             LuaObject::addMethod(L, "GetInverse", GetInverse, true);
             LuaObject::addMethod(L, "GridSnap", GridSnap, true);
@@ -16648,6 +17540,35 @@
             }
         }
 
+        static int BuildAABB(lua_State* L) {
+            {
+                auto Origin = LuaObject::checkValue<FVector2D*>(L, 1);
+                if (!Origin) {
+                    luaL_error(L, "%s argument 1 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& OriginRef = *Origin;
+                auto Extent = LuaObject::checkValue<FVector2D*>(L, 2);
+                if (!Extent) {
+                    luaL_error(L, "%s argument 2 is nullptr", __FUNCTION__);
+                    return 0;
+                }
+                auto& ExtentRef = *Extent;
+                if (lua_isnoneornil(L, 3)) {
+                    auto ret = __newFBox2D();
+                    *ret = FBox2D::BuildAABB(OriginRef, ExtentRef);
+                    LuaObject::push<FBox2D>(L, "FBox2D", ret, UD_AUTOGC | UD_VALUETYPE);
+                } else {
+                    auto ret = LuaObject::checkValue<FBox2D*>(L, 3);
+                    if (!ret)
+                        luaL_error(L, "arg %d expect FBox2D type.", 3);
+                    *ret = FBox2D::BuildAABB(OriginRef, ExtentRef);
+                    lua_pushvalue(L, 3);
+                }
+                return 1;
+            }
+        }
+
         static void bind(lua_State* L) {
             AutoStack autoStack(L);
             LuaObject::newType(L, "FBox2D");
@@ -16672,6 +17593,7 @@
             LuaObject::addMethod(L, "ShiftBy", ShiftBy, true);
             LuaObject::addMethod(L, "MoveTo", MoveTo, true);
             LuaObject::addMethod(L, "ToString", ToString, true);
+            LuaObject::addMethod(L, "BuildAABB", BuildAABB, false);
             LuaObject::addMethod(L, "clone", clone, true);
             LuaObject::finishType(L, "FBox2D", __ctor, __gc);
         }
@@ -17122,6 +18044,13 @@
             FIntVectorWrapper::bind(L);
         }
 
+        FInt64Vector2Struct = StaticGetBaseStructureInternal(TEXT("Int64Vector2"));
+        if (FInt64Vector2Struct) {
+            _pushStructMap.Add(FInt64Vector2Struct, __pushFInt64Vector2);
+            _checkStructMap.Add(FInt64Vector2Struct, __checkFInt64Vector2);
+            FInt64Vector2Wrapper::bind(L);
+        }
+
         FIntVector4Struct = StaticGetBaseStructureInternal(TEXT("IntVector4"));
         if (FIntVector4Struct) {
             _pushStructMap.Add(FIntVector4Struct, __pushFIntVector4);
@@ -17281,6 +18210,13 @@
             _pushStructMap.Add(FFrameTimeStruct, __pushFFrameTime);
             _checkStructMap.Add(FFrameTimeStruct, __checkFFrameTime);
             FFrameTimeWrapper::bind(L);
+        }
+
+        FFrameRateStruct = StaticGetBaseStructureInternal(TEXT("FrameRate"));
+        if (FFrameRateStruct) {
+            _pushStructMap.Add(FFrameRateStruct, __pushFFrameRate);
+            _checkStructMap.Add(FFrameRateStruct, __checkFFrameRate);
+            FFrameRateWrapper::bind(L);
         }
 
         FSoftObjectPathStruct = StaticGetBaseStructureInternal(TEXT("SoftObjectPath"));

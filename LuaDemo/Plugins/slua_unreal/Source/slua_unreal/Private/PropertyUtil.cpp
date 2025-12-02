@@ -14,9 +14,12 @@
 #include "PropertyUtil.h"
 #include "UObject/UObjectGlobals.h"
 #include "UObject/StrongObjectPtr.h"
-#include "UObject/UnrealType.h"
+#include "UObject/TextProperty.h"
 #if ENGINE_MAJOR_VERSION==5
 #include "UObject/UnrealTypePrivate.h"
+#if ENGINE_MINOR_VERSION>=5
+#include "UObject/EnumProperty.h"
+#endif
 #endif
 
 namespace NS_SLUA {
@@ -239,6 +242,9 @@ namespace NS_SLUA {
             p = newProperty(owner, FByteProperty::StaticClass(), propName);
             p->SetPropertyFlags(CPF_HasGetValueTypeHash);
             break;
+        case EPropertyClass::Enum:
+            p = newProperty(owner, FEnumProperty::StaticClass(), propName);
+            p->SetPropertyFlags(CPF_HasGetValueTypeHash);
         case EPropertyClass::Int8:
             p = newProperty(owner, FInt8Property::StaticClass(), propName);
             p->SetPropertyFlags(CPF_HasGetValueTypeHash);

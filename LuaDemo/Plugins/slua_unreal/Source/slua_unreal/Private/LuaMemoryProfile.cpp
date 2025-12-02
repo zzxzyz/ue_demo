@@ -51,7 +51,6 @@ namespace NS_SLUA {
     }
 
     inline void addRecord(LuaState* LS, void* ptr, size_t size, LuaMemInfo &memInfo) {
-        if (!LS->memTrack) return;
         // skip if lua_State is null, lua_State hadn't binded to LS
         lua_State* L = LS->getLuaState();
         if (!L) return;
@@ -69,9 +68,6 @@ namespace NS_SLUA {
     }
 
     inline void removeRecord(LuaState* LS, void* ptr, size_t osize) {
-        if (!LS->memTrack) return;
-        // if ptr record
-
         auto* memoryRecordDetail = TryGetMemoryRecord(LS);
         
         auto memInfoPtr = memoryRecordDetail->Find(ptr);
@@ -85,20 +81,33 @@ namespace NS_SLUA {
         }
     }
 
-    void* LuaMemoryProfile::alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
-        // LLM_SCOPE(ELLMTag::Lua); // For PUBG Mobile
+    void* LuaMemoryProfile::alloc (void *ud, void *ptr, size_t osize, size_t nsize)
+    {
         LuaState* ls = (LuaState*)ud;
-        if (nsize == 0) {
-            removeRecord(ls, ptr, osize);
+        int memTrack = ls->memTrack;
+        if (nsize == 0) 
+        {
+            if (memTrack) 
+            {
+                removeRecord(ls, ptr, osize);
+            }
             FMemory::Free(ptr);
             return NULL;
         }
-        else {
-            if(ptr) removeRecord(ls, ptr, osize);
+        else 
+        {
+            if (ptr && memTrack)
+            {
+                removeRecord(ls, ptr, osize);
+            }
             
-            LuaMemInfo memInfo;
-            // get stack before realloc to avoid luaD_reallocstack crash!
-            bool bHasStack = getMemInfo(ls, nsize, memInfo);
+            static LuaMemInfo memInfo;
+            bool bHasStack = false;
+            if (memTrack)
+            {
+                // get stack before realloc to avoid luaD_reallocstack crash!
+                bHasStack = getMemInfo(ls, nsize, memInfo);
+            }
             ptr = FMemory::Realloc(ptr,nsize);
             if (bHasStack)
                 addRecord(ls,ptr,nsize,memInfo);
@@ -174,8 +183,38 @@ namespace NS_SLUA {
         return false;
     }
 
+    lua_CFunction getCFunction(lua_Debug &ar)
+    {
+        auto ci = ar.i_ci;
+#if LUA_VERSION_NUM >= 504
+#if LUA_VERSION_RELEASE_NUM >= 50406
+        auto func = s2v(ci->func.p);
+#else
+        auto func = s2v(ci->func);
+#endif
+        if (ttislcf(func)) 
+        {   
+            return fvalue(func);
+        }
+        else if (ttisCclosure(func))
+        {
+            return clCvalue(func)->f;
+        }
+#else
+        auto func = ci->func;
+        if (ttislcf(func))
+        {
+            return fvalue(func);
+        }
+        else if (ttisCclosure(func))
+        {
+            return clCvalue(func)->f;
+        }
+#endif
+        return nullptr;
+    }
+
     bool getMemInfo(LuaState* ls, size_t size, LuaMemInfo& info) {
-        if (!ls->memTrack) return false;
         // skip if lua_State is null, lua_State hadn't binded to LS
         lua_State* L = ls->getLuaState();
         if (!L) return false;
@@ -186,16 +225,15 @@ namespace NS_SLUA {
         
         for (int i = 0;;i++) {
             lua_Debug ar;
-            AutoStack as(L);
 #if LUA_VERSION_RELEASE_NUM >= 50406
-            if (lua_getstack(L, i, &ar) && L->base_ci.func.p != nullptr && lua_getinfo(L, "nSlf", &ar)) {
+            if (lua_getstack(L, i, &ar) && L->base_ci.func.p != nullptr && lua_getinfo(L, "nSl", &ar)) {
 #else
-            if (lua_getstack(L, i, &ar) && lua_getinfo(L, "nSlf", &ar)) {
+            if (lua_getstack(L, i, &ar) && lua_getinfo(L, "nSl", &ar)) {
 #endif
                 if (strcmp(ar.what, "C") == 0) {
                     if (ar.name) {
                         firstCName += UTF8_TO_TCHAR(ar.name);
-                        lua_CFunction cfunc = lua_tocfunction(L, -1);
+                        lua_CFunction cfunc = getCFunction(ar);
                         if (cfunc == LuaProfiler::resumeFunc) {
                             if (lua_isthread(L, 1)) {
                                 lua_State* L1 = lua_tothread(L, 1);

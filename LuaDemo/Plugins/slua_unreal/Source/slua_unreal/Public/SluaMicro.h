@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-//#include <lstate.h> // For PUBG Mobile
+#include <lstate.h>
 #ifdef G
     #undef G
 #endif
@@ -15,7 +15,14 @@
 
 namespace NS_SLUA
 {
-    //typedef lua_State lua_State; // For PUBG Mobile
+    typedef lua_State lua_State;
+#ifndef UE_5_5_OR_LATER
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#define UE_5_5_OR_LATER 1
+#else
+#define UE_5_5_OR_LATER 0
+#endif
+#endif
 
 #if (ENGINE_MINOR_VERSION<25) && (ENGINE_MAJOR_VERSION==4)
     #define CastField Cast
@@ -62,5 +69,21 @@ namespace NS_SLUA
     typedef Native FNativeFuncPtr;
 #else
     typedef FNativeFuncPtr FNativeFuncPtr;
+#endif
+
+    inline int32 getPropertySize(const FProperty* prop)
+    {
+#if UE_5_5_OR_LATER
+        return prop->GetElementSize();
+#else
+	    return prop->ElementSize;
+#endif
+    }
+
+#if ENGINE_MAJOR_VERSION==5
+    FORCEINLINE int32 getPropertyAlignment(FProperty* prop)
+    {
+        return prop->GetMinAlignment();
+    }
 #endif
 }

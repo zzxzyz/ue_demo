@@ -15,35 +15,39 @@
 #include "LuaObject.h"
 #include "LuaNetSerialization.h"
 #include "UObject/Package.h"
+#if !((ENGINE_MINOR_VERSION<25) && (ENGINE_MAJOR_VERSION==4))
 #include "Misc/FrameTime.h"
+#endif
 
 #define SLUA_GCSTRUCT(typeName) auto flag = udptr->flag; \
-                    if (udptr->parent) { \
-                        LuaObject::unlinkProp(L, udptr); \
-                    } \
-                    else if (!(flag & UD_HADFREE) && (flag & UD_AUTOGC)) { \
-                        LuaObject::releaseLink(L, self); \
-                    } \
-                    if ((flag & UD_AUTOGC) && !(flag & UD_HADFREE)) delete self
+    if (udptr->parent) { \
+        LuaObject::unlinkProp(L, udptr); \
+    } \
+    else if (!(flag & UD_HADFREE) && (flag & UD_AUTOGC)) { \
+        LuaObject::releaseLink(L, self); \
+    } \
+    if ((flag & UD_AUTOGC) && !(flag & UD_HADFREE)) delete self
 
 #define SLUA_MARK_NETPROP if (udptr->flag & UD_NETTYPE) \
-{ \
-    auto proxy = udptr->proxy; \
-    if (proxy) \
     { \
-        auto luaReplicatedIndex = udptr->luaReplicatedIndex; \
-        proxy->dirtyMark.Add(luaReplicatedIndex); \
-        proxy->assignTimes++; \
-    } \
-}
+        auto proxy = udptr->proxy; \
+        if (proxy) \
+        { \
+            auto luaReplicatedIndex = udptr->luaReplicatedIndex; \
+            proxy->dirtyMark.Add(luaReplicatedIndex); \
+            proxy->assignTimes++; \
+        } \
+    }
 
 #define SLUA_GET_NETINFO FLuaNetSerializationProxy* proxy = nullptr; \
-uint16 luaReplicatedIndex = InvalidReplicatedIndex; \
-if (udptr->flag & UD_NETTYPE) \
-{ \
-    luaReplicatedIndex = udptr->luaReplicatedIndex; \
-}
+    uint16 luaReplicatedIndex = InvalidReplicatedIndex; \
+    if (udptr->flag & UD_NETTYPE) \
+    { \
+        luaReplicatedIndex = udptr->luaReplicatedIndex; \
+    }
 
+#define CheckIfConst(T) if (udptr->flag & UD_CONST) \
+    luaL_error(L, #T" checkValue error, can not assign to const value."); \
 
 namespace NS_SLUA {
     UScriptStruct* StaticGetBaseStructureInternal(const TCHAR* Name)
@@ -64,6 +68,8 @@ namespace NS_SLUA {
     #include "LuaWrapper5.3.inc"
 #elif ((ENGINE_MINOR_VERSION==4) && (ENGINE_MAJOR_VERSION==5))
     #include "LuaWrapper5.4.inc"
+#elif ((ENGINE_MINOR_VERSION==5) && (ENGINE_MAJOR_VERSION==5))
+    #include "LuaWrapper5.5.inc"
 #endif
 
     static inline FSoftObjectPtr* __newFSoftObjectPtr() {

@@ -7,6 +7,16 @@
 #include "UObject/UObjectArray.h"
 #include "LuaOverrider.generated.h"
 
+#ifndef ACCESS_PRIVATE_FIELD
+#define ACCESS_PRIVATE_FIELD(Class, Type, Member) \
+        template <typename Class, Type Class::* M> \
+        struct AccessPrivate##Class##Member { \
+            friend Type Class::* Private##Class##Member() { return M; } \
+        };\
+        Type Class::* Private##Class##Member(); \
+        template struct AccessPrivate##Class##Member<Class, &Class::Member>
+#endif
+
 UCLASS()
 class SLUA_UNREAL_API ULuaOverrider : public UObject
 {
@@ -20,7 +30,7 @@ public:
         NS_SLUA::LuaVar table;
         bool isInstance;
     };
-    typedef TMap<TWeakObjectPtr<UObject>, FObjectTable, FDefaultSetAllocator, TWeakObjectPtrMapKeyFuncs<TWeakObjectPtr<UObject>, FObjectTable>> ObjectTableMap;
+    typedef TMap<UObject*, FObjectTable> ObjectTableMap;
 
     static ObjectTableMap* getObjectTableMap(NS_SLUA::lua_State* L);
     static NS_SLUA::LuaVar* getObjectLuaTable(const UObject* obj, NS_SLUA::lua_State* L = nullptr);
@@ -40,8 +50,7 @@ protected:
     static void onLuaStateClose(NS_SLUA::lua_State* L);
     
     typedef TMap<FString, NS_SLUA::FNativeFuncPtr> NativeMap;
-    typedef TMap<TWeakObjectPtr<UClass>, NativeMap, FDefaultSetAllocator, TWeakObjectPtrMapKeyFuncs<TWeakObjectPtr<UClass>, NativeMap>> ClassNativeMap;
-    static ClassNativeMap classSuperFuncs;
+    typedef TMap<UClass*, NativeMap> ClassNativeMap;
 
     static TMap<NS_SLUA::lua_State*, ObjectTableMap> objectTableMap;
 

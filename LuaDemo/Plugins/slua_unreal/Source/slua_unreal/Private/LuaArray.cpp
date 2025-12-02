@@ -33,7 +33,7 @@ namespace NS_SLUA {
         // blueprint stack will destroy the TArray
         // so deep-copy construct FScriptArray
         // it's very expensive
-        if(!srcArray)
+        if(!srcArray || (destArray == srcArray))
             return;
 
         arrayP->CopyCompleteValue(destArray, srcArray);
@@ -43,7 +43,7 @@ namespace NS_SLUA {
         // blueprint stack will destroy the TArray
         // so deep-copy construct FScriptArray
         // it's very expensive
-        if(!srcArray)
+        if(!srcArray || (destArray == srcArray))
             return;
             
         FScriptArrayHelper helper = FScriptArrayHelper::CreateHelperFormInnerProperty(p, destArray);
@@ -54,10 +54,11 @@ namespace NS_SLUA {
         helper.Resize(srcArray->Num());
         uint8* dest = helper.GetRawPtr();
         uint8* src = (uint8*)srcArray->GetData();
+        int32 propertySize = getPropertySize(p);
         for(int n=0;n<srcArray->Num();n++) {
             p->CopySingleValue(dest,src);
-            dest+=p->ElementSize;
-            src+=p->ElementSize;
+            dest+= propertySize;
+            src+= propertySize;
         }
     }
 
@@ -75,7 +76,10 @@ namespace NS_SLUA {
         else
         {
             array = new FScriptArray();
-            clone(array, p, buf);
+            if (buf)
+            {
+            	clone(array, p, buf);
+            }
         }
     }
 
@@ -134,17 +138,18 @@ namespace NS_SLUA {
     void LuaArray::clear() {
         if(!inner) return;
 
+        int32 propertySize = getPropertySize(inner);
         if (!isRef) {
             uint8 *Dest = getRawPtr(0);
-            for (int32 i = 0; i < array->Num(); i++, Dest += inner->ElementSize)
+            for (int32 i = 0; i < array->Num(); i++, Dest += propertySize)
             {
                 inner->DestroyValue(Dest);
             }
         }
 #if ENGINE_MAJOR_VERSION==5
-        array->Empty(0, inner->ElementSize, GetPropertyAlignment(inner));
+        array->Empty(0, propertySize, getPropertyAlignment(inner));
 #else
-        array->Empty(0, inner->ElementSize);
+        array->Empty(0, propertySize);
 #endif
     }
 
@@ -181,7 +186,7 @@ namespace NS_SLUA {
     }
 
     uint8* LuaArray::getRawPtr(int index) const {
-        return (uint8*)array->GetData() + index * inner->ElementSize;
+        return (uint8*)array->GetData() + index * getPropertySize(inner);
     }
 
     bool LuaArray::isValidIndex(int index) const {
@@ -194,9 +199,9 @@ namespace NS_SLUA {
 
     uint8* LuaArray::add() {
 #if ENGINE_MAJOR_VERSION==5
-        const int index = array->Add(1, inner->ElementSize, GetPropertyAlignment(inner));
+        const int index = array->Add(1, getPropertySize(inner), getPropertyAlignment(inner));
 #else
-        const int index = array->Add(1, inner->ElementSize);
+        const int index = array->Add(1, getPropertySize(inner));
 #endif
         
         constructItems(index, 1);
@@ -205,9 +210,9 @@ namespace NS_SLUA {
 
     uint8* LuaArray::insert(int index) {
 #if ENGINE_MAJOR_VERSION==5
-        array->Insert(index, 1, inner->ElementSize, GetPropertyAlignment(inner));
+        array->Insert(index, 1, getPropertySize(inner), getPropertyAlignment(inner));
 #else
-        array->Insert(index, 1, inner->ElementSize);
+        array->Insert(index, 1, getPropertySize(inner));
 #endif
         
         constructItems(index, 1);
@@ -217,9 +222,9 @@ namespace NS_SLUA {
     void LuaArray::remove(int index) {
         destructItems(index, 1);
 #if ENGINE_MAJOR_VERSION==5
-        array->Remove(index, 1, inner->ElementSize, GetPropertyAlignment(inner));
+        array->Remove(index, 1, getPropertySize(inner), getPropertyAlignment(inner));
 #else
-        array->Remove(index, 1, inner->ElementSize);
+        array->Remove(index, 1, getPropertySize(inner));
 #endif  
     }
 
@@ -229,7 +234,8 @@ namespace NS_SLUA {
         if (!(inner->PropertyFlags & (CPF_IsPlainOldData | CPF_NoDestructor)))
         {
             uint8 *Dest = getRawPtr(index);
-            for (int32 i = 0 ; i < count; i++, Dest += inner->ElementSize)
+            int32 propertySize = getPropertySize(inner);
+            for (int32 i = 0 ; i < count; i++, Dest += propertySize)
             {
                 inner->DestroyValue(Dest);
             }
@@ -238,13 +244,14 @@ namespace NS_SLUA {
 
     void LuaArray::constructItems(int index,int count) {
         uint8 *Dest = getRawPtr(index);
+        int32 propertySize = getPropertySize(inner);
         if (inner->PropertyFlags & CPF_ZeroConstructor)
         {
-            FMemory::Memzero(Dest, count * inner->ElementSize);
+            FMemory::Memzero(Dest, count * propertySize);
         }
         else
         {
-            for (int32 i = 0 ; i < count; i++, Dest += inner->ElementSize)
+            for (int32 i = 0 ; i < count; i++, Dest += propertySize)
             {
                 inner->InitializeValue(Dest);
             }
@@ -252,7 +259,7 @@ namespace NS_SLUA {
     }
 
     int LuaArray::push(lua_State* L,FProperty* inner,FScriptArray* data, bool bIsNewInner) {
-        if (LuaObject::isBinStringProperty(inner))
+        if (LuaObject::isBinStringProperty(inner) && !bIsNewInner)
         {
             char* dest = (char*)data->GetData();
             int32 len = data->Num();
@@ -261,7 +268,6 @@ namespace NS_SLUA {
         }
 
         LuaArray* luaArrray = new LuaArray(inner, data, false, bIsNewInner);
-        LuaObject::addLink(L, luaArrray->get());
         return LuaObject::pushType(L,luaArrray,"LuaArray",setupMT,gc);
     }
 
@@ -275,7 +281,6 @@ namespace NS_SLUA {
         }
 
         LuaArray* luaArrray = new LuaArray(prop, data, false, nullptr, 0);
-        LuaObject::addLink(L, luaArrray->get());
         return LuaObject::pushType(L,luaArrray,"LuaArray",setupMT,gc);
     }
 
@@ -325,32 +330,91 @@ namespace NS_SLUA {
     }
 
     int LuaArray::Get(lua_State* L) {
+        int top = lua_gettop(L);
+
         CheckUD(LuaArray, L, 1);
         if (!UD) {
             luaL_error(L, "arg 1 expect LuaArray, but got nil!");
         }
-        int i = LuaObject::checkValue<int>(L,2);
+        int index = LuaObject::checkValue<int>(L,2);
         FProperty* element = UD->inner;
-        if (!UD->isValidIndex(i)) {
-            luaL_error(L, "Array get index %d out of range", i);
+        if (!UD->isValidIndex(index)) {
+            luaL_error(L, "Array get index %d out of range", index);
             return 0;
         }
-        return LuaObject::push(L,element,UD->getRawPtr(i));
+
+    	auto prop = element;
+        auto valuePtr = UD->getRawPtr(index);
+
+        int outIndex = 0;
+        if (top > 2)
+        {
+            for (int i = 3; i <= top; ++i)
+            {
+                int keyType = lua_type(L, i);
+                if ((keyType == LUA_TNIL || keyType == LUA_TUSERDATA) && i == top)
+                {
+                    outIndex = i;
+                    break;
+                }
+
+                auto p = CastField<FStructProperty>(element);
+                if (!p)
+                {
+                    return 0;
+                }
+
+                const char* key = lua_tostring(L, i);
+                prop = LuaObject::findCacheProperty(L, p->Struct, key);
+                if (!prop)
+                {
+                    return 0;
+                }
+                valuePtr = prop->ContainerPtrToValuePtr<uint8>(valuePtr);
+            }
+
+            auto pusher = LuaObject::getPusher(prop);
+            return pusher(L, prop, valuePtr, outIndex, nullptr);
+        }
+
+        return LuaObject::push(L, prop, valuePtr);
     }
 
     int LuaArray::Set(lua_State* L)
     {
+        int top = lua_gettop(L);
+
         CheckUD(LuaArray, L, 1);
         if (!UD) {
             luaL_error(L, "arg 1 expect LuaArray, but got nil!");
         }
         int index = LuaObject::checkValue<int>(L, 2);
+        if (!UD->isValidIndex(index))
+            luaL_error(L, "Array set index %d out of range", index);
+
         FProperty* element = UD->inner;
+        auto valuePtr = UD->getRawPtr(index);
+
+        for (int i = 3; i < top; ++i)
+        {
+            auto p = CastField<FStructProperty>(element);
+            if (!p)
+            {
+                luaL_error(L, "only struct property support but got %s", TCHAR_TO_UTF8(*p->GetName()));
+            }
+
+            const char* key = lua_tostring(L, i);
+            element = LuaObject::findCacheProperty(L, p->Struct, key);
+            if (!element)
+            {
+                luaL_error(L, "%s of %s's member not found.", key, TCHAR_TO_UTF8(*p->GetName()));
+            }
+            valuePtr = element->ContainerPtrToValuePtr<uint8>(valuePtr);
+        }
+
         auto checker = LuaObject::getChecker(element);
         if (checker) {
-            if (!UD->isValidIndex(index))
-                luaL_error(L, "Array set index %d out of range", index);
-            checker(L, element, UD->getRawPtr(index), 3, true);
+            checker(L, element, valuePtr, top, true);
         }
         else {
             FString tn = element->GetClass()->GetName();
@@ -554,7 +618,7 @@ namespace NS_SLUA {
         if (arr->IsValidIndex(index))
         {
             auto element = UD->inner;
-            auto es = element->ElementSize;
+            auto es = getPropertySize(element);
             auto parms = ((uint8*)arr->GetData()) + index * es;
             lua_pushinteger(L, index);
             LuaObject::push(L, element, parms);
@@ -584,7 +648,7 @@ namespace NS_SLUA {
         if (arr->IsValidIndex(index))
         {
             auto element = UD->inner;
-            auto es = element->ElementSize;
+            auto es = getPropertySize(element);
             auto parms = ((uint8*)arr->GetData()) + index * es;
             lua_pushinteger(L, index);
 
@@ -676,9 +740,6 @@ namespace NS_SLUA {
     int LuaArray::gc(lua_State* L) {
         auto userdata = (UserData<LuaArray*>*)lua_touserdata(L, 1);
         auto self = userdata->ud;
-        if (!userdata->parent && !(userdata->flag & UD_HADFREE)) {
-            LuaObject::releaseLink(L, self->get());
-        }
         if (self->isRef) {
             LuaObject::unlinkProp(L, userdata);
         }
