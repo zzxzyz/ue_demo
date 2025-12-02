@@ -46,7 +46,6 @@ public:
 	UPROPERTY(meta = (BindWidget))
     class UButton* CancelButton;
 
-
 	// 错误信息文本
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* ErrorText;

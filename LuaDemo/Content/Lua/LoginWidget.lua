@@ -15,10 +15,28 @@ function LoginWidget:NativeConstruct()
     else
         print("CancelButton is nil!")
     end
+
+    -- 在 Lua 中获取 CloseButton（通过 FindWidget 方法）
+    self.CloseButton = self:FindWidget("CloseButton")
+    if self.CloseButton then
+        print("Binding CloseButton OnClicked in Lua")
+        self.CloseButton.OnClicked:Add(function()
+            self:OnCloseButtonClicked()
+        end)
+    else
+        print("CloseButton is nil!")
+    end
 end
 
 function LoginWidget:OnCancelButtonClicked()
     print("Cancel button clicked in Lua!")
+    -- 可以在这里添加Lua逻辑
+    -- 例如：关闭窗口、清理数据等
+    self:RemoveFromParent()
+end
+
+function LoginWidget:OnCloseButtonClicked()
+    print("Close button clicked in Lua!")
     -- 可以在这里添加Lua逻辑
     -- 例如：关闭窗口、清理数据等
     self:RemoveFromParent()
