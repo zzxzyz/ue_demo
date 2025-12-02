@@ -49,6 +49,16 @@ function LoginPanel:InitWidgets()
         end)
         print("CancelButton OnClicked bound successfully")
     end
+
+    if self.CloseButton then
+        print("Binding CloseButton OnClicked in Lua")
+        self.CloseButton.OnClicked:Clear()
+        self.CloseButton.OnClicked:Add(function()
+            print("CloseButton OnClicked callback called in Lua")
+            self:OnCloseButtonClicked()
+        end)
+        print("CloseButton OnClicked bound successfully")
+    end
     
     -- 设置密码输入框为密码模式
     if self.PasswordTextBox then
@@ -79,8 +89,8 @@ function LoginPanel:OnLoginButtonClicked()
         return
     end
     
-    local email = self.EmailTextBox:GetText():ToString()
-    local password = self.PasswordTextBox:GetText():ToString()
+    local email = self.EmailTextBox:GetText()
+    local password = self.PasswordTextBox:GetText()
     
     -- 清除之前的错误信息
     self:ClearError()
@@ -154,16 +164,18 @@ end
 function LoginPanel:ShowError(errorMessage)
     if self.ErrorText then
         self.ErrorText:SetText(errorMessage)
-        -- 设置可见性为可见（ESlateVisibility::Visible）
-        self.ErrorText:SetVisibility(UEnums.ESlateVisibility.Visible)
+        -- 设置可见性为可见（ESlateVisibility::Visible = 0）
+        local visibility = (UEnums and UEnums.ESlateVisibility and UEnums.ESlateVisibility.Visible) or 0
+        self.ErrorText:SetVisibility(visibility)
     end
 end
 
 function LoginPanel:ClearError()
     if self.ErrorText then
         self.ErrorText:SetText("")
-        -- 设置可见性为折叠（ESlateVisibility::Collapsed）
-        self.ErrorText:SetVisibility(UEnums.ESlateVisibility.Collapsed)
+        -- 设置可见性为折叠（ESlateVisibility::Collapsed = 1）
+        local visibility = (UEnums and UEnums.ESlateVisibility and UEnums.ESlateVisibility.Collapsed) or 1
+        self.ErrorText:SetVisibility(visibility)
     end
 end
 
@@ -172,6 +184,19 @@ function LoginPanel:OnCancelButtonClicked()
     print("self type: " .. type(self))
     print("RemoveFromParent exists: " .. tostring(self.RemoveFromParent ~= nil))
     
+    -- 可以在这里添加Lua逻辑
+    -- 例如：关闭窗口、清理数据等
+    if self.RemoveFromParent then
+        print("Calling RemoveFromParent...")
+        self:RemoveFromParent()
+        print("RemoveFromParent called successfully")
+    else
+        print("ERROR: RemoveFromParent function not found!")
+    end
+end
+
+function LoginPanel:OnCloseButtonClicked()
+    print("Close button clicked in Lua!")
     -- 可以在这里添加Lua逻辑
     -- 例如：关闭窗口、清理数据等
     if self.RemoveFromParent then
