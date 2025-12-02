@@ -11,10 +11,10 @@ public class LuaDemo : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "slua_unreal", "Slate", "SlateCore" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "slua_unreal", "slua_profile", "Slate", "SlateCore", "Http" });
 
         PrivateIncludePathModuleNames.AddRange(new string[] { "slua_unreal" });
-        PublicIncludePathModuleNames.AddRange(new string[] { "slua_unreal" });
+        PublicIncludePathModuleNames.AddRange(new string[] { "slua_unreal" , "slua_profile" });
 
         var IDbgDir = Path.GetFullPath(Path.Combine(ModuleDirectory, "../third_party/IDbg"));
         var IDbgIncludeDir = Path.Combine(IDbgDir, "include");
