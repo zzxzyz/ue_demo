@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro;  // TextMeshPro 命名空间
 using UnityEngine.UI;  // UI 命名空间
 using System.Collections;  // 协程命名空间
+using IDbg;  // IDbg库命名空间（参考IDbgExample.cs的用法）
 
 public class LoginManager : MonoBehaviour
 {
@@ -14,6 +15,9 @@ public class LoginManager : MonoBehaviour
 
     void Start()
     {
+        // 初始化IDbg（参考IDbgExample.cs）
+        IDbgLog.Initialize();
+
         // 给登录按钮添加点击事件
         loginButton.onClick.AddListener(OnLoginButtonClicked);
 
@@ -34,6 +38,13 @@ public class LoginManager : MonoBehaviour
         else
         {
             Debug.Log("LoginPanel已赋值: " + loginPanel.name);
+        }
+
+        // 使用IDbg获取系统信息（参考IDbgExample.cs）
+        if (IDbgWrapper.IsAvailable())
+        {
+            Debug.Log($"CPU核心数: {IDbgWrapper.GetCpuCore()}");
+            Debug.Log($"进程ID: {IDbgWrapper.GetProcessId()}");
         }
 
         Debug.Log("登录界面已加载");
@@ -71,6 +82,14 @@ public class LoginManager : MonoBehaviour
             titleText.text = "登录成功！";
             titleText.color = Color.green;
             
+            // 使用IDbg获取性能信息（参考IDbgExample.cs）
+            if (IDbgWrapper.IsAvailable())
+            {
+                float appMemory = IDbgWrapper.GetAppMemory();
+                float appCpu = IDbgWrapper.GetAppCpu();
+                Debug.Log($"[IDbg-登录成功] 应用CPU: {appCpu}%, 应用内存: {appMemory} MB");
+            }
+            
             // 登录成功后延迟隐藏登录界面（让用户看到成功提示）
             StartCoroutine(HideLoginPanelAfterDelay(1.5f));
         }
@@ -103,5 +122,11 @@ public class LoginManager : MonoBehaviour
         {
             Debug.LogError("无法隐藏登录界面：loginPanel为null！请检查场景中是否存在名为'LoginPanel'的GameObject，或在Inspector中手动赋值loginPanel字段。");
         }
+    }
+
+    void OnDestroy()
+    {
+        // 清理IDbg资源（参考IDbgExample.cs）
+        IDbgLog.Cleanup();
     }
 }
