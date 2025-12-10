@@ -137,8 +137,9 @@ namespace IDbg
         /// </summary>
         public static float GetAppCpu()
         {
-            float dummy = 0;
-            return GetAppCpu(ref dummy);
+            float maxThreadCpu = 0;
+            // 使用局部变量避免 ref/in 参数问题
+            return GetAppCpu(ref maxThreadCpu);
         }
 
         /// <summary>
