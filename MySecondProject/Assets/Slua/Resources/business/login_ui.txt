@@ -40,15 +40,30 @@ end
 
 -- 初始化UI组件
 local function InitUIComponents()
-    -- 查找 LoginPanel（优先查找，因为其他组件可能在它下面）
-    loginPanel = GameObject.Find("LoginPanel")
-    
-    if not loginPanel then
-        Debug.LogWarning("未找到LoginPanel，请确保场景中存在名为'LoginPanel'的GameObject！")
-        return false
+    -- 优先从 UIManager 获取 LoginPanel（跨场景 UI）
+    local uiManager = GameObject.Find("UIManager")
+    if uiManager then
+        local manager = uiManager:GetComponent("UIManager")
+        if manager then
+            loginPanel = manager:GetUI("LoginPanel")
+            if loginPanel then
+                Debug.Log("从 UIManager 获取到 LoginPanel: " .. loginPanel.name)
+            end
+        end
     end
     
-    Debug.Log("自动找到LoginPanel: " .. loginPanel.name)
+    -- 如果 UIManager 中没有，尝试在场景中查找（向后兼容）
+    if not loginPanel then
+        loginPanel = GameObject.Find("LoginPanel")
+        if loginPanel then
+            Debug.Log("在场景中找到 LoginPanel: " .. loginPanel.name)
+        end
+    end
+    
+    if not loginPanel then
+        Debug.LogWarning("未找到LoginPanel，请确保 UIManager 已初始化或场景中存在名为'LoginPanel'的GameObject！")
+        return false
+    end
     
     -- 查找用户名输入框
     -- 尝试多种可能的路径
