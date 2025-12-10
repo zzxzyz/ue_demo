@@ -1,3 +1,9 @@
+--[[
+    @language lua
+    @filetype lua
+    Lua script for Unity SLua framework
+--]]
+
 import "UnityEngine"
 import "UnityEngine.UI"
 
@@ -233,3 +239,4 @@ function LoginManager.Init()
 end
 
 return LoginManager
+
