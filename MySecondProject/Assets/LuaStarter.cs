@@ -21,6 +21,7 @@ public class LuaStarter : MonoBehaviour
 
         //方式2：加载并执行Lua脚本文件（hello.txt位于Assets / Slua / Resources目录）
         luaSvr.start("hello");
+        luaSvr.start("business.login_ui");
 
         Debug.Log("Lua脚本已执行，已打印hello world");
     }

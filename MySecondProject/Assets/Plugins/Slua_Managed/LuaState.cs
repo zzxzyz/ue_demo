@@ -1366,9 +1366,34 @@ return dumpstack
 
 					if (asset == null)
 						return null;
+					
+					// 输出加载的Lua文件完整路径日志
+					string filePath = "";
+#if UNITY_EDITOR
+					string assetPath = UnityEditor.AssetDatabase.GetAssetPath(asset);
+					if (!string.IsNullOrEmpty(assetPath))
+					{
+						// AssetDatabase路径是相对于项目根目录的，转换为完整路径
+						// Application.dataPath 是 "项目路径/Assets"，需要去掉 "Assets" 部分
+						string projectPath = Application.dataPath.Substring(0, Application.dataPath.Length - 6);
+						filePath = System.IO.Path.Combine(projectPath, assetPath);
+						filePath = filePath.Replace('\\', '/'); // 统一使用正斜杠
+					}
+					else
+					{
+						// 如果无法获取AssetDatabase路径，使用Resources路径
+						filePath = Application.dataPath + "/Slua/Resources/" + fn + ".txt";
+					}
+#else
+					// 运行时使用Resources路径
+					filePath = Application.dataPath + "/Slua/Resources/" + fn + ".txt";
+#endif
+					Logger.Log(string.Format("[Slua] 加载Lua文件: {0}", filePath));
+					
 					bytes = asset.bytes;
 #else
 					bytes = File.ReadAllBytes(fn);
+					Logger.Log(string.Format("[Slua] 加载Lua文件: {0}", fn));
 #endif
 				}
 				return bytes;
