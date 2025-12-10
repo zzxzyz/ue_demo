@@ -1,1 +1,235 @@
-print("in login ui from lua")
+import "UnityEngine"
+import "UnityEngine.UI"
+
+-- LoginManager Lua 实现
+-- 实现与 LoginManager.cs 相同的功能
+
+local LoginManager = {}
+
+-- 存储UI组件引用
+local usernameInput = nil
+local passwordInput = nil
+local loginButton = nil
+local titleText = nil
+local loginPanel = nil
+
+-- 查找UI组件的辅助函数
+-- 支持通过路径查找，例如 "LoginPanel/UsernameInput"
+local function FindComponentByPath(path, componentType)
+    local go = GameObject.Find(path)
+    if go then
+        -- 尝试通过字符串类型名获取组件
+        local comp = go:GetComponent(componentType)
+        if comp then
+            return comp
+        end
+        -- 如果字符串类型名失败，尝试通过类型获取
+        if type(componentType) == "string" then
+            -- 尝试使用反射方式（如果支持）
+            return go:GetComponent(componentType)
+        end
+    end
+    return nil
+end
+
+-- 初始化UI组件
+local function InitUIComponents()
+    -- 查找 LoginPanel（优先查找，因为其他组件可能在它下面）
+    loginPanel = GameObject.Find("LoginPanel")
+    
+    if not loginPanel then
+        Debug.LogWarning("未找到LoginPanel，请确保场景中存在名为'LoginPanel'的GameObject！")
+        return false
+    end
+    
+    Debug.Log("自动找到LoginPanel: " .. loginPanel.name)
+    
+    -- 查找用户名输入框
+    -- 尝试多种可能的路径
+    usernameInput = FindComponentByPath("LoginPanel/UsernameInput", "TMP_InputField")
+    if not usernameInput then
+        usernameInput = FindComponentByPath("UsernameInput", "TMP_InputField")
+    end
+    if not usernameInput and loginPanel then
+        -- 尝试在 LoginPanel 的子对象中查找
+        local child = loginPanel.transform:Find("UsernameInput")
+        if child then
+            usernameInput = child.gameObject:GetComponent("TMP_InputField")
+        end
+    end
+    
+    -- 查找密码输入框
+    passwordInput = FindComponentByPath("LoginPanel/PasswordInput", "TMP_InputField")
+    if not passwordInput then
+        passwordInput = FindComponentByPath("PasswordInput", "TMP_InputField")
+    end
+    if not passwordInput and loginPanel then
+        local child = loginPanel.transform:Find("PasswordInput")
+        if child then
+            passwordInput = child.gameObject:GetComponent("TMP_InputField")
+        end
+    end
+    
+    -- 查找登录按钮
+    local buttonGO = GameObject.Find("LoginPanel/LoginButton")
+    if not buttonGO then
+        buttonGO = GameObject.Find("LoginButton")
+    end
+    if not buttonGO and loginPanel then
+        local child = loginPanel.transform:Find("LoginButton")
+        if child then
+            buttonGO = child.gameObject
+        end
+    end
+    if buttonGO then
+        loginButton = buttonGO:GetComponent("Button")
+    end
+    
+    -- 查找标题文本（支持多种可能的名称）
+    local titleGO = GameObject.Find("LoginPanel/TitleText")
+    if not titleGO then
+        titleGO = GameObject.Find("TitleText")
+    end
+    if not titleGO then
+        titleGO = GameObject.Find("LoginPanel/StatusText")
+    end
+    if not titleGO and loginPanel then
+        local child = loginPanel.transform:Find("TitleText")
+        if not child then
+            child = loginPanel.transform:Find("StatusText")
+        end
+        if child then
+            titleGO = child.gameObject
+        end
+    end
+    if titleGO then
+        titleText = titleGO:GetComponent("TextMeshProUGUI")
+    end
+    
+    -- 验证所有组件是否找到
+    if not usernameInput then
+        Debug.LogWarning("未找到用户名输入框 (UsernameInput with TMP_InputField)")
+    end
+    if not passwordInput then
+        Debug.LogWarning("未找到密码输入框 (PasswordInput with TMP_InputField)")
+    end
+    if not loginButton then
+        Debug.LogWarning("未找到登录按钮 (LoginButton with Button)")
+    end
+    if not titleText then
+        Debug.LogWarning("未找到标题文本 (TitleText with TextMeshProUGUI)")
+    end
+    
+    return true
+end
+
+-- 登录按钮点击处理函数
+local function OnLoginButtonClicked()
+    if not usernameInput or not passwordInput or not titleText then
+        Debug.LogError("UI组件未初始化完成！")
+        return
+    end
+    
+    local username = usernameInput.text
+    local password = passwordInput.text
+    
+    Debug.Log("点击了登录按钮 from lua")
+    Debug.Log("用户名：" .. username)
+    Debug.Log("密码：" .. password)
+    
+    -- 简单的验证逻辑
+    if not username or username == "" then
+        Debug.LogWarning("用户名不能为空！")
+        titleText.text = "请输入用户名！"
+        return
+    end
+    
+    if not password or password == "" then
+        Debug.LogWarning("密码不能为空！")
+        titleText.text = "请输入密码！"
+        return
+    end
+    
+    -- 模拟登录验证（实际项目中需要连接服务器）
+    if username == "admin" and password == "123456" then
+        Debug.Log("登录成功！")
+        titleText.text = "登录成功！"
+        titleText.color = Color.green
+        
+        -- 登录成功后延迟隐藏登录界面（让用户看到成功提示）
+        -- 使用协程实现延迟
+        local co = coroutine.create(function()
+            Yield(WaitForSeconds(1.5))
+            
+            -- 如果loginPanel未赋值，再次尝试查找
+            if not loginPanel then
+                loginPanel = GameObject.Find("LoginPanel")
+            end
+            
+            if loginPanel then
+                Debug.Log("正在隐藏登录界面: " .. loginPanel.name)
+                loginPanel:SetActive(false)
+                Debug.Log("登录界面已成功隐藏")
+            else
+                Debug.LogError("无法隐藏登录界面：loginPanel为null！请检查场景中是否存在名为'LoginPanel'的GameObject。")
+            end
+        end)
+        coroutine.resume(co)
+    else
+        Debug.LogError("用户名或密码错误！")
+        titleText.text = "登录失败！"
+        titleText.color = Color.red
+    end
+end
+
+-- 初始化函数（相当于 C# 的 Start 方法）
+function LoginManager.Start()
+    -- 初始化UI组件
+    if InitUIComponents() then
+        -- 给登录按钮添加点击事件
+        if loginButton then
+            loginButton.onClick:AddListener(OnLoginButtonClicked)
+            Debug.Log("登录按钮点击事件已绑定")
+        end
+        
+        Debug.Log("登录界面已加载")
+    else
+        Debug.LogError("LoginManager 初始化失败：无法找到必要的UI组件")
+    end
+end
+
+-- 清理函数（相当于 C# 的 OnDestroy 方法）
+function LoginManager.OnDestroy()
+    -- 清理事件监听（如果需要）
+    if loginButton then
+        loginButton.onClick:RemoveAllListeners()
+    end
+    
+    -- 清空引用
+    usernameInput = nil
+    passwordInput = nil
+    loginButton = nil
+    titleText = nil
+    loginPanel = nil
+end
+
+-- 主函数，在 LuaStarter 中调用
+function main()
+    -- 延迟启动 LoginManager，确保场景完全加载
+    -- 使用协程延迟一帧执行
+    local co = coroutine.create(function()
+        -- 等待一帧
+        Yield(null)
+        -- 启动 LoginManager
+        LoginManager.Start()
+    end)
+    coroutine.resume(co)
+end
+
+-- 也可以直接调用（如果场景已经加载完成）
+-- 例如从 C# 脚本中调用：LuaSvr.mainState.doString("require 'business.login_ui'; LoginManager.Start()")
+function LoginManager.Init()
+    LoginManager.Start()
+end
+
+return LoginManager
