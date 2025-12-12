@@ -1,5 +1,6 @@
 using UnityEngine;
 using SLua;
+using System;
 using System.Collections;
 
 /// <summary>
@@ -193,18 +194,27 @@ public class LoginBridge : MonoBehaviour
         // 注册C#函数到Lua全局表
         try
         {
-            LuaSvr.mainState.doString(@"
-                -- 创建全局的 CSharpBridge 表
-                CSharpBridge = {}
-                
-                -- 注册 C# 的 LoginService 实例
-                CSharpBridge.LoginService = LoginService.Instance
-                
-                -- 注册 C# 的 LoginBridge 实例
-                CSharpBridge.Bridge = LoginBridge.Instance
-                
-                print('C# 桥接函数已注册到 Lua')
-            ");
+            IntPtr L = LuaSvr.mainState.L;
+            
+            // 创建 CSharpBridge 表
+            LuaSvr.mainState.doString("CSharpBridge = {}");
+            
+            // 获取 CSharpBridge 表到栈顶
+            LuaDLL.lua_getglobal(L, "CSharpBridge");
+            
+            // 将 LoginService.Instance 推送到栈
+            LuaObject.pushObject(L, LoginService.Instance);
+            // 设置到 CSharpBridge.LoginService
+            LuaDLL.lua_setfield(L, -2, "LoginService");
+            
+            // 将 LoginBridge.Instance 推送到栈
+            LuaObject.pushObject(L, LoginBridge.Instance);
+            // 设置到 CSharpBridge.Bridge
+            LuaDLL.lua_setfield(L, -2, "Bridge");
+            
+            // 弹出 CSharpBridge 表
+            LuaDLL.lua_pop(L, 1);
+            
             Debug.Log("[C# LoginBridge] 桥接函数已注册到Lua");
         }
         catch (System.Exception e)
