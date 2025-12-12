@@ -10,8 +10,8 @@ public class LuaStarter : MonoBehaviour
         // 初始化Lua虚拟机
         luaSvr = new LuaSvr();
         
-        // 初始化slua，使用基本模式
-        luaSvr.init(null, OnLuaInitComplete, LuaSvrFlag.LSF_BASIC);
+        // 初始化slua，使用基本模式 + 扩展库（包含 socket）
+        luaSvr.init(null, OnLuaInitComplete, LuaSvrFlag.LSF_BASIC | LuaSvrFlag.LSF_EXTLIB);
     }
     
     void OnLuaInitComplete()
