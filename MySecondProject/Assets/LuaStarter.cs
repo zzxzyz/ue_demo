@@ -23,7 +23,10 @@ public class LuaStarter : MonoBehaviour
         luaSvr.start("hello");
         luaSvr.start("business.login_ui");
 
-        Debug.Log("Lua脚本已执行，已打印hello world");
+        // 初始化C#和Lua之间的桥接
+        LoginBridge.Instance.InitializeBridge();
+
+        Debug.Log("Lua脚本已执行，C#和Lua桥接已初始化");
     }
     
     void OnDestroy()

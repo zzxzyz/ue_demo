@@ -21,6 +21,12 @@ end
 
 local LoginManager = {}
 
+-- ========== 配置变量 ==========
+-- 控制使用同步还是异步登录方式
+-- true: 使用异步登录（带回调）
+-- false: 使用同步登录（直接返回结果）
+LoginManager.UseAsyncLogin = false
+
 -- 存储UI组件引用
 local usernameInput = nil
 local passwordInput = nil
@@ -153,7 +159,122 @@ local function InitUIComponents()
     return true
 end
 
+-- ========== 辅助函数 ==========
+-- 隐藏登录界面的通用函数
+local function HideLoginPanelAfterDelay(delay)
+    local co = coroutine.create(function()
+        Yield(WaitForSeconds(delay))
+        
+        if not loginPanel then
+            loginPanel = GameObject.Find("LoginPanel")
+        end
+        
+        if loginPanel then
+            Debug.Log("正在隐藏登录界面: " .. loginPanel.name)
+            loginPanel:SetActive(false)
+            Debug.Log("登录界面已成功隐藏")
+        else
+            Debug.LogError("无法隐藏登录界面：loginPanel为null！")
+        end
+    end)
+    coroutine.resume(co)
+end
+
+-- 显示登录成功信息
+local function ShowLoginSuccess(message)
+    if titleText then
+        titleText.text = "登录成功！" .. (message or "")
+        titleText.color = Color.green
+    end
+    HideLoginPanelAfterDelay(1.5)
+end
+
+-- 显示登录失败信息
+local function ShowLoginFailed(message)
+    if titleText then
+        titleText.text = "登录失败！" .. (message or "")
+        titleText.color = Color.red
+    end
+end
+
+-- ========== 登录逻辑函数 ==========
+-- 同步登录：直接调用C#的同步验证函数
+local function LoginSync(username, password)
+    Debug.Log("[Lua] 使用同步登录方式")
+    
+    if not CSharpBridge or not CSharpBridge.LoginService then
+        Debug.LogWarning("[Lua] CSharpBridge未初始化，回退到简单验证")
+        return LoginSimple(username, password)
+    end
+    
+    Debug.Log("[Lua] 调用 C# LoginService.ValidateLogin")
+    local isValid = CSharpBridge.LoginService:ValidateLogin(username, password)
+    
+    if isValid then
+        -- 调用C#函数获取用户信息
+        local userInfo = CSharpBridge.LoginService:GetUserInfo(username)
+        Debug.Log("[Lua] 用户信息: " .. userInfo)
+        
+        -- 调用C#函数保存登录状态
+        CSharpBridge.LoginService:SaveLoginState(username)
+        
+        Debug.Log("[Lua] 登录成功！")
+        ShowLoginSuccess()
+        return true
+    else
+        Debug.LogError("[Lua] 登录验证失败")
+        ShowLoginFailed("用户名或密码错误")
+        return false
+    end
+end
+
+-- 异步登录：调用C#的异步登录函数，使用回调处理结果
+local function LoginAsync(username, password)
+    Debug.Log("[Lua] 使用异步登录方式")
+    
+    if not CSharpBridge or not CSharpBridge.LoginService then
+        Debug.LogWarning("[Lua] CSharpBridge未初始化，回退到简单验证")
+        return LoginSimple(username, password)
+    end
+    
+    -- 定义Lua回调函数
+    local function onLoginSuccess(user, msg)
+        Debug.Log("[Lua] 异步登录成功回调: " .. user .. ", " .. msg)
+        
+        -- 保存登录状态
+        CSharpBridge.LoginService:SaveLoginState(user)
+        
+        -- 显示成功信息并隐藏界面
+        ShowLoginSuccess(msg)
+    end
+    
+    local function onLoginFailed(errorMsg)
+        Debug.LogError("[Lua] 异步登录失败回调: " .. errorMsg)
+        ShowLoginFailed(errorMsg)
+    end
+    
+    -- 调用C#的异步登录函数，传入Lua回调
+    CSharpBridge.LoginService:LoginAsync(username, password, onLoginSuccess, onLoginFailed)
+    return true  -- 异步调用立即返回
+end
+
+-- 简单验证：向后兼容的简单验证逻辑（不依赖C#）
+local function LoginSimple(username, password)
+    Debug.LogWarning("[Lua] 使用简单验证逻辑（向后兼容）")
+    
+    if username == "admin" and password == "123456" then
+        Debug.Log("登录成功！")
+        ShowLoginSuccess()
+        return true
+    else
+        Debug.LogError("用户名或密码错误！")
+        ShowLoginFailed()
+        return false
+    end
+end
+
 -- 登录按钮点击处理函数
+-- 这个函数展示了如何从Lua调用C#的函数
 local function OnLoginButtonClicked()
     if not usernameInput or not passwordInput or not titleText then
         Debug.LogError("UI组件未初始化完成！")
@@ -180,35 +301,74 @@ local function OnLoginButtonClicked()
         return
     end
     
-    -- 模拟登录验证（实际项目中需要连接服务器）
-    if username == "admin" and password == "123456" then
-        Debug.Log("登录成功！")
-        titleText.text = "登录成功！"
-        titleText.color = Color.green
-        
-        -- 登录成功后延迟隐藏登录界面（让用户看到成功提示）
-        -- 使用协程实现延迟
-        local co = coroutine.create(function()
-            Yield(WaitForSeconds(1.5))
-            
-            -- 如果loginPanel未赋值，再次尝试查找
-            if not loginPanel then
-                loginPanel = GameObject.Find("LoginPanel")
-            end
-            
-            if loginPanel then
-                Debug.Log("正在隐藏登录界面: " .. loginPanel.name)
-                loginPanel:SetActive(false)
-                Debug.Log("登录界面已成功隐藏")
-            else
-                Debug.LogError("无法隐藏登录界面：loginPanel为null！请检查场景中是否存在名为'LoginPanel'的GameObject。")
-            end
-        end)
-        coroutine.resume(co)
+    -- ========== 根据配置变量选择同步或异步登录 ==========
+    if LoginManager.UseAsyncLogin then
+        -- 使用异步登录
+        LoginAsync(username, password)
     else
-        Debug.LogError("用户名或密码错误！")
-        titleText.text = "登录失败！"
-        titleText.color = Color.red
+        -- 使用同步登录
+        LoginSync(username, password)
+    end
+end
+
+-- ========== 公开的配置和工具函数 ==========
+-- 设置登录方式（同步或异步）
+-- @param useAsync true=异步登录, false=同步登录
+function LoginManager.SetLoginMode(useAsync)
+    LoginManager.UseAsyncLogin = useAsync
+    Debug.Log("[Lua] 登录模式已设置为: " .. (useAsync and "异步" or "同步"))
+end
+
+-- 获取当前登录方式
+-- @return true=异步, false=同步
+function LoginManager.GetLoginMode()
+    return LoginManager.UseAsyncLogin
+end
+
+-- ========== 供C#调用的Lua函数 ==========
+-- 这个函数可以从C#中调用，例如：LoginBridge.CallLuaLoginFunction(username, password)
+function LoginManager.LoginFromCSharp(username, password)
+    Debug.Log("[Lua] 收到来自C#的登录请求: " .. username)
+    
+    -- 可以在这里处理来自C#的登录请求
+    if usernameInput and passwordInput then
+        usernameInput.text = username
+        passwordInput.text = password
+    end
+    
+    -- 调用登录处理函数
+    OnLoginButtonClicked()
+end
+
+-- 注册Lua回调函数到C#（供C#调用）
+function LoginManager.RegisterCallbacksToCSharp()
+    if CSharpBridge and CSharpBridge.Bridge then
+        -- 定义Lua回调函数
+        local function onLoginSuccess(user, msg)
+            Debug.Log("[Lua] 登录成功回调: " .. user .. ", " .. msg)
+            if titleText then
+                titleText.text = "登录成功！" .. msg
+                titleText.color = Color.green
+            end
+        end
+        
+        local function onLoginFailed(errorMsg)
+            Debug.LogError("[Lua] 登录失败回调: " .. errorMsg)
+            if titleText then
+                titleText.text = "登录失败！" .. errorMsg
+                titleText.color = Color.red
+            end
+        end
+        
+        local function onLoginComplete(success, msg)
+            Debug.Log("[Lua] 登录完成回调: success=" .. tostring(success) .. ", msg=" .. msg)
+        end
+        
+        -- 注册到C#的LoginBridge
+        CSharpBridge.Bridge:RegisterLuaLoginCallbacks(onLoginSuccess, onLoginFailed, onLoginComplete)
+        Debug.Log("[Lua] 回调函数已注册到C#")
+    else
+        Debug.LogWarning("[Lua] CSharpBridge未初始化，无法注册回调")
     end
 end
 
@@ -220,6 +380,20 @@ function LoginManager.Start()
         if loginButton then
             loginButton.onClick:AddListener(OnLoginButtonClicked)
             Debug.Log("登录按钮点击事件已绑定")
+        end
+        
+        -- 尝试注册回调函数到C#（如果C#桥接已初始化）
+        if CSharpBridge and CSharpBridge.Bridge then
+            LoginManager.RegisterCallbacksToCSharp()
+        end
+        
+        -- 尝试从C#获取上次登录的用户名
+        if CSharpBridge and CSharpBridge.LoginService then
+            local lastUser = CSharpBridge.LoginService:GetLastLoginUser()
+            if lastUser and lastUser ~= "" and usernameInput then
+                usernameInput.text = lastUser
+                Debug.Log("[Lua] 已填充上次登录的用户名: " .. lastUser)
+            end
         end
         
         Debug.Log("登录界面已加载")
@@ -248,8 +422,16 @@ function main()
     -- 延迟启动 LoginManager，确保场景完全加载
     -- 使用协程延迟一帧执行
     local co = coroutine.create(function()
-        -- 等待一帧
+        -- 等待一帧，确保C#桥接已初始化
         Yield(null)
+        
+        -- 如果CSharpBridge还未初始化，再等待几帧
+        local waitCount = 0
+        while (not CSharpBridge or not CSharpBridge.Bridge) and waitCount < 10 do
+            Yield(null)
+            waitCount = waitCount + 1
+        end
+        
         -- 启动 LoginManager
         LoginManager.Start()
     end)
