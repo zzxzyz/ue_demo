@@ -1,6 +1,7 @@
 ﻿using System;
 using SLua;
 using System.Collections.Generic;
+using System.Reflection;
 [UnityEngine.Scripting.Preserve]
 public class Lua_UnityEngine_Playables_PlayableGraph : LuaObject {
 	[SLua.MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
@@ -602,7 +603,16 @@ public class Lua_UnityEngine_Playables_PlayableGraph : LuaObject {
 			#endif
 			UnityEngine.Playables.PlayableGraph self;
 			checkValueType(l,1,out self);
-			var ret=self.GetEditorName();
+			// GetEditorName was removed in Unity 2018.1+
+			// Use reflection to safely check if method exists
+			string ret = "";
+			var methodInfo = typeof(UnityEngine.Playables.PlayableGraph).GetMethod("GetEditorName", BindingFlags.Instance | BindingFlags.Public);
+			if (methodInfo != null) {
+				var result = methodInfo.Invoke(self, null);
+				if (result != null) {
+					ret = (string)result;
+				}
+			}
 			pushValue(l,true);
 			pushValue(l,ret);
 			return 2;

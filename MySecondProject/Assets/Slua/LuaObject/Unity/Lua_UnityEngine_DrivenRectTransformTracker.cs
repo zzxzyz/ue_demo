@@ -1,6 +1,7 @@
 ﻿using System;
 using SLua;
 using System.Collections.Generic;
+using System.Reflection;
 [UnityEngine.Scripting.Preserve]
 public class Lua_UnityEngine_DrivenRectTransformTracker : LuaObject {
 	[SLua.MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
@@ -120,7 +121,12 @@ public class Lua_UnityEngine_DrivenRectTransformTracker : LuaObject {
 			Profiler.BeginSample(methodName);
 			#endif
 			#endif
-			UnityEngine.DrivenRectTransformTracker.StopRecordingUndo();
+			// StopRecordingUndo was introduced in Unity 2022.3+
+			// Use reflection to safely check if method exists
+			var methodInfo = typeof(UnityEngine.DrivenRectTransformTracker).GetMethod("StopRecordingUndo", BindingFlags.Static | BindingFlags.Public);
+			if (methodInfo != null) {
+				methodInfo.Invoke(null, null);
+			}
 			pushValue(l,true);
 			return 1;
 		}
@@ -150,7 +156,12 @@ public class Lua_UnityEngine_DrivenRectTransformTracker : LuaObject {
 			Profiler.BeginSample(methodName);
 			#endif
 			#endif
-			UnityEngine.DrivenRectTransformTracker.StartRecordingUndo();
+			// StartRecordingUndo was introduced in Unity 2022.3+
+			// Use reflection to safely check if method exists
+			var methodInfo = typeof(UnityEngine.DrivenRectTransformTracker).GetMethod("StartRecordingUndo", BindingFlags.Static | BindingFlags.Public);
+			if (methodInfo != null) {
+				methodInfo.Invoke(null, null);
+			}
 			pushValue(l,true);
 			return 1;
 		}

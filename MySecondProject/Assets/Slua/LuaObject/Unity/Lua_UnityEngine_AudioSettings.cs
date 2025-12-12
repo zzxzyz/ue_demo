@@ -1,6 +1,7 @@
 ﻿using System;
 using SLua;
 using System.Collections.Generic;
+using System.Reflection;
 [UnityEngine.Scripting.Preserve]
 public class Lua_UnityEngine_AudioSettings : LuaObject {
 	[SLua.MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
@@ -82,7 +83,16 @@ public class Lua_UnityEngine_AudioSettings : LuaObject {
 			Profiler.BeginSample(methodName);
 			#endif
 			#endif
-			var ret=UnityEngine.AudioSettings.GetSpatializerPluginNames();
+			// GetSpatializerPluginNames was removed in Unity 2018.1+
+			// Use reflection to safely check if method exists
+			List<string> ret = new List<string>();
+			var methodInfo = typeof(UnityEngine.AudioSettings).GetMethod("GetSpatializerPluginNames", BindingFlags.Static | BindingFlags.Public);
+			if (methodInfo != null) {
+				var result = methodInfo.Invoke(null, null);
+				if (result != null) {
+					ret = (List<string>)result;
+				}
+			}
 			pushValue(l,true);
 			pushValue(l,ret);
 			return 2;
@@ -146,7 +156,12 @@ public class Lua_UnityEngine_AudioSettings : LuaObject {
 			#endif
 			System.String a1;
 			checkType(l,1,out a1);
-			UnityEngine.AudioSettings.SetSpatializerPluginName(a1);
+			// SetSpatializerPluginName was removed in Unity 2018.1+
+			// Use reflection to safely check if method exists
+			var methodInfo = typeof(UnityEngine.AudioSettings).GetMethod("SetSpatializerPluginName", BindingFlags.Static | BindingFlags.Public);
+			if (methodInfo != null) {
+				methodInfo.Invoke(null, new object[] { a1 });
+			}
 			pushValue(l,true);
 			return 1;
 		}

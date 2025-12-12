@@ -336,9 +336,11 @@ namespace SLua {
 				Lua_UnityEngine_Playables_ScriptPlayableBinding.reg,
 				Lua_UnityEngine_Playables_ScriptPlayableOutput.reg,
 				Lua_UnityEngine_DynamicGI.reg,
+#if UNITY_TVOS || UNITY_EDITOR
 				Lua_UnityEngine_tvOS_Remote.reg,
 				Lua_UnityEngine_tvOS_DeviceGeneration.reg,
 				Lua_UnityEngine_tvOS_Device.reg,
+#endif
 				Lua_UnityEngine_ILogger.reg,
 				Lua_UnityEngine_ILogHandler.reg,
 				Lua_UnityEngine_Logger.reg,

@@ -1,6 +1,7 @@
 ﻿using System;
 using SLua;
 using System.Collections.Generic;
+using System.Reflection;
 [UnityEngine.Scripting.Preserve]
 public class Lua_UnityEngine_LightProbeGroup : LuaObject {
 	[SLua.MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
@@ -50,7 +51,12 @@ public class Lua_UnityEngine_LightProbeGroup : LuaObject {
 			UnityEngine.LightProbeGroup self=(UnityEngine.LightProbeGroup)checkSelf(l);
 			UnityEngine.Vector3[] v;
 			checkArray(l,2,out v);
-			self.probePositions=v;
+			// probePositions is read-only in Unity 2018.1+
+			// Use reflection to check if setter exists
+			var propInfo = typeof(UnityEngine.LightProbeGroup).GetProperty("probePositions");
+			if (propInfo != null && propInfo.CanWrite) {
+				propInfo.SetValue(self, v, null);
+			}
 			pushValue(l,true);
 			return 1;
 		}
@@ -81,8 +87,18 @@ public class Lua_UnityEngine_LightProbeGroup : LuaObject {
 			#endif
 			#endif
 			UnityEngine.LightProbeGroup self=(UnityEngine.LightProbeGroup)checkSelf(l);
+			// dering property does not exist in Unity 2018.4
+			// Use reflection to safely check if property exists
+			bool ret = false;
+			var propInfo = typeof(UnityEngine.LightProbeGroup).GetProperty("dering");
+			if (propInfo != null) {
+				var value = propInfo.GetValue(self, null);
+				if (value != null) {
+					ret = (bool)value;
+				}
+			}
 			pushValue(l,true);
-			pushValue(l,self.dering);
+			pushValue(l,ret);
 			return 2;
 		}
 		catch(Exception e) {
@@ -114,7 +130,12 @@ public class Lua_UnityEngine_LightProbeGroup : LuaObject {
 			UnityEngine.LightProbeGroup self=(UnityEngine.LightProbeGroup)checkSelf(l);
 			bool v;
 			checkType(l,2,out v);
-			self.dering=v;
+			// dering property does not exist in Unity 2018.4
+			// Use reflection to safely check if property exists
+			var propInfo = typeof(UnityEngine.LightProbeGroup).GetProperty("dering");
+			if (propInfo != null && propInfo.CanWrite) {
+				propInfo.SetValue(self, v, null);
+			}
 			pushValue(l,true);
 			return 1;
 		}

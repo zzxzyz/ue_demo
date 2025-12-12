@@ -1,6 +1,7 @@
 ﻿using System;
 using SLua;
 using System.Collections.Generic;
+using System.Reflection;
 [UnityEngine.Scripting.Preserve]
 public class Lua_UnityEngine_Light : LuaObject {
 	[SLua.MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
@@ -48,7 +49,12 @@ public class Lua_UnityEngine_Light : LuaObject {
 			#endif
 			#endif
 			UnityEngine.Light self=(UnityEngine.Light)checkSelf(l);
-			self.SetLightDirty();
+			// SetLightDirty was removed in Unity 2018.1+
+			// Use reflection to safely check if method exists
+			var methodInfo = typeof(UnityEngine.Light).GetMethod("SetLightDirty", BindingFlags.Instance | BindingFlags.Public);
+			if (methodInfo != null) {
+				methodInfo.Invoke(self, null);
+			}
 			pushValue(l,true);
 			return 1;
 		}
@@ -1317,8 +1323,18 @@ public class Lua_UnityEngine_Light : LuaObject {
 			#endif
 			#endif
 			UnityEngine.Light self=(UnityEngine.Light)checkSelf(l);
+			// shadowRadius was removed in Unity 2018.1+
+			// Use reflection to safely check if property exists
+			float ret = 0f;
+			var propInfo = typeof(UnityEngine.Light).GetProperty("shadowRadius");
+			if (propInfo != null) {
+				var value = propInfo.GetValue(self, null);
+				if (value != null) {
+					ret = (float)value;
+				}
+			}
 			pushValue(l,true);
-			pushValue(l,self.shadowRadius);
+			pushValue(l,ret);
 			return 2;
 		}
 		catch(Exception e) {
@@ -1350,7 +1366,12 @@ public class Lua_UnityEngine_Light : LuaObject {
 			UnityEngine.Light self=(UnityEngine.Light)checkSelf(l);
 			float v;
 			checkType(l,2,out v);
-			self.shadowRadius=v;
+			// shadowRadius was removed in Unity 2018.1+
+			// Use reflection to safely check if property exists
+			var propInfo = typeof(UnityEngine.Light).GetProperty("shadowRadius");
+			if (propInfo != null && propInfo.CanWrite) {
+				propInfo.SetValue(self, v, null);
+			}
 			pushValue(l,true);
 			return 1;
 		}
@@ -1381,8 +1402,18 @@ public class Lua_UnityEngine_Light : LuaObject {
 			#endif
 			#endif
 			UnityEngine.Light self=(UnityEngine.Light)checkSelf(l);
+			// shadowAngle was removed in Unity 2018.1+
+			// Use reflection to safely check if property exists
+			float ret = 0f;
+			var propInfo = typeof(UnityEngine.Light).GetProperty("shadowAngle");
+			if (propInfo != null) {
+				var value = propInfo.GetValue(self, null);
+				if (value != null) {
+					ret = (float)value;
+				}
+			}
 			pushValue(l,true);
-			pushValue(l,self.shadowAngle);
+			pushValue(l,ret);
 			return 2;
 		}
 		catch(Exception e) {
@@ -1414,7 +1445,12 @@ public class Lua_UnityEngine_Light : LuaObject {
 			UnityEngine.Light self=(UnityEngine.Light)checkSelf(l);
 			float v;
 			checkType(l,2,out v);
-			self.shadowAngle=v;
+			// shadowAngle was removed in Unity 2018.1+
+			// Use reflection to safely check if property exists
+			var propInfo = typeof(UnityEngine.Light).GetProperty("shadowAngle");
+			if (propInfo != null && propInfo.CanWrite) {
+				propInfo.SetValue(self, v, null);
+			}
 			pushValue(l,true);
 			return 1;
 		}

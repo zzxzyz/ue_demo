@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if UNITY_TVOS || UNITY_EDITOR
+using System;
 using SLua;
 using System.Collections.Generic;
 [UnityEngine.Scripting.Preserve]
@@ -262,3 +263,4 @@ public class Lua_UnityEngine_tvOS_Device : LuaObject {
 		createTypeMetatable(l,constructor, typeof(UnityEngine.tvOS.Device));
 	}
 }
+#endif

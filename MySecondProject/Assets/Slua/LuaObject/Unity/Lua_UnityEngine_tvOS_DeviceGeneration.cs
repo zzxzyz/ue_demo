@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if UNITY_TVOS || UNITY_EDITOR
+using System;
 using SLua;
 using System.Collections.Generic;
 [UnityEngine.Scripting.Preserve]
@@ -11,3 +12,4 @@ public class Lua_UnityEngine_tvOS_DeviceGeneration : LuaObject {
 		LuaDLL.lua_pop(l, 1);
 	}
 }
+#endif
