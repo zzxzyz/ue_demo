@@ -25,7 +25,7 @@ local LoginManager = {}
 -- 控制使用同步还是异步登录方式
 -- true: 使用异步登录（带回调）
 -- false: 使用同步登录（直接返回结果）
-LoginManager.UseAsyncLogin = false
+LoginManager.UseAsyncLogin = true
 
 -- 存储UI组件引用
 local usernameInput = nil
