@@ -31,7 +31,8 @@ local LoginManager = {}
 -- 控制使用同步还是异步登录方式
 -- true: 使用异步登录（带回调）
 -- false: 使用同步登录（直接返回结果）
-LoginManager.UseAsyncLogin = true
+-- 从C#传递的全局变量读取设置（如果未设置则默认使用异步登录）
+LoginManager.UseAsyncLogin = _G._AsyncLoginEnabled ~= nil and _G._AsyncLoginEnabled or true
 
 -- 存储UI组件引用
 local usernameInput = nil

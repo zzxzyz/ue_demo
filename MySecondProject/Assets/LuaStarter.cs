@@ -25,6 +25,13 @@ public class LuaStarter : MonoBehaviour
         
         // 将LuaPanda启用状态传递给Lua全局变量
         LuaSvr.mainState.doString($"_G._LuaPandaEnabled = {(luaPandaEnabled ? "true" : "false")}");
+        
+        // 检查异步登录是否启用，并传递给Lua
+        // 从PlayerPrefs读取设置（MenuOptions已经将设置保存到PlayerPrefs，默认启用）
+        bool asyncLoginEnabled = PlayerPrefs.GetInt("SLua_AsyncLogin_Enabled", 1) == 1;
+        
+        // 将异步登录启用状态传递给Lua全局变量
+        LuaSvr.mainState.doString($"_G._AsyncLoginEnabled = {(asyncLoginEnabled ? "true" : "false")}");
 
         //方式2：加载并执行Lua脚本文件（hello.txt位于Assets / Slua / Resources目录）
         luaSvr.start("hello");

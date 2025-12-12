@@ -55,11 +55,53 @@ namespace SLua
             #endif
         }
 
+        private static bool isAsyncLoginEnabled = true;
+        private const string ASYNC_LOGIN_PREF_KEY = "SLua_AsyncLogin_Enabled";
+
         [MenuItem("选项/异步登录")]
-        public static void OpenAsyncLogin()
+        public static void ToggleAsyncLogin()
         {
-            Debug.Log("打开异步登录功能");
-            // 在这里添加异步登录的具体功能代码
+            // 切换勾选状态
+            isAsyncLoginEnabled = !isAsyncLoginEnabled;
+            Menu.SetChecked("选项/异步登录", isAsyncLoginEnabled);
+            
+            // 保存状态到EditorPrefs以便持久化（Editor模式）
+            EditorPrefs.SetBool(ASYNC_LOGIN_PREF_KEY, isAsyncLoginEnabled);
+            // 同时保存到PlayerPrefs以便运行时访问
+            PlayerPrefs.SetInt(ASYNC_LOGIN_PREF_KEY, isAsyncLoginEnabled ? 1 : 0);
+            PlayerPrefs.Save();
+            
+            Debug.Log($"异步登录: {(isAsyncLoginEnabled ? "已启用" : "已禁用")}");
+        }
+
+        [MenuItem("选项/异步登录", true)]
+        public static bool ValidateToggleAsyncLogin()
+        {
+            // 从EditorPrefs加载状态（默认启用）
+            isAsyncLoginEnabled = EditorPrefs.GetBool(ASYNC_LOGIN_PREF_KEY, true);
+            // 同步到PlayerPrefs以便运行时访问
+            PlayerPrefs.SetInt(ASYNC_LOGIN_PREF_KEY, isAsyncLoginEnabled ? 1 : 0);
+            // 设置菜单项的勾选状态
+            Menu.SetChecked("选项/异步登录", isAsyncLoginEnabled);
+            return true;
+        }
+
+        /// <summary>
+        /// 获取异步登录是否启用（运行时可用）
+        /// </summary>
+        public static bool IsAsyncLoginEnabled()
+        {
+            // 优先从PlayerPrefs读取（运行时）
+            if (PlayerPrefs.HasKey(ASYNC_LOGIN_PREF_KEY))
+            {
+                return PlayerPrefs.GetInt(ASYNC_LOGIN_PREF_KEY, 1) == 1;
+            }
+            // 如果PlayerPrefs中没有，尝试从EditorPrefs读取（Editor模式，默认启用）
+            #if UNITY_EDITOR
+            return EditorPrefs.GetBool(ASYNC_LOGIN_PREF_KEY, true);
+            #else
+            return true;
+            #endif
         }
     }
 }
