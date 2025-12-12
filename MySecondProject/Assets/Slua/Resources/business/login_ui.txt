@@ -7,13 +7,19 @@
 import "UnityEngine"
 import "UnityEngine.UI"
 
--- 尝试加载 LuaPanda 调试器（可选，如果不存在则忽略）
-local ok, luaPanda = pcall(function() return require("LuaPanda") end)
-if ok and luaPanda then
-    luaPanda.start("127.0.0.1", 8818)
-    Debug.Log("LuaPanda 调试器已启动")
+-- 根据菜单设置决定是否加载 LuaPanda 调试器
+-- 只有在"选项/LuaPanda"菜单项勾选时才启动调试器
+local luaPandaEnabled = _G._LuaPandaEnabled
+if luaPandaEnabled then
+    local ok, luaPanda = pcall(function() return require("LuaPanda") end)
+    if ok and luaPanda then
+        luaPanda.start("127.0.0.1", 8818)
+        Debug.Log("LuaPanda 调试器已启动")
+    else
+        Debug.Log("LuaPanda 调试器未找到，跳过调试器初始化")
+    end
 else
-    Debug.Log("LuaPanda 调试器未找到，跳过调试器初始化")
+    Debug.Log("LuaPanda 调试器未启用（请在Unity Editor菜单：选项/LuaPanda 中启用）")
 end
 
 -- LoginManager Lua 实现

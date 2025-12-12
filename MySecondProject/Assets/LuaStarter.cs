@@ -19,6 +19,13 @@ public class LuaStarter : MonoBehaviour
         // 方式1：直接执行Lua代码字符串
         //LuaSvr.mainState.doString("print('hello world')");
 
+        // 检查LuaPanda是否启用，并传递给Lua
+        // 从PlayerPrefs读取设置（MenuOptions已经将设置保存到PlayerPrefs）
+        bool luaPandaEnabled = PlayerPrefs.GetInt("SLua_LuaPanda_Enabled", 0) == 1;
+        
+        // 将LuaPanda启用状态传递给Lua全局变量
+        LuaSvr.mainState.doString($"_G._LuaPandaEnabled = {(luaPandaEnabled ? "true" : "false")}");
+
         //方式2：加载并执行Lua脚本文件（hello.txt位于Assets / Slua / Resources目录）
         luaSvr.start("hello");
         luaSvr.start("business.login_ui");
