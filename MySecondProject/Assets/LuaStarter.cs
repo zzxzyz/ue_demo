@@ -7,6 +7,9 @@ public class LuaStarter : MonoBehaviour
     
     void Start()
     {
+        // 初始化 AssetBundle 加载器（优先从 AssetBundle 加载）
+        LuaAssetBundleLoader.Initialize();
+        
         // 初始化Lua虚拟机
         luaSvr = new LuaSvr();
         
@@ -50,6 +53,9 @@ public class LuaStarter : MonoBehaviour
         {
             luaSvr = null;
         }
+        
+        // 清理 AssetBundle 资源
+        LuaAssetBundleLoader.UnloadAll();
     }
 }
 

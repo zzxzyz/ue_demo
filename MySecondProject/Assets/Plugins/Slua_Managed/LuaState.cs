@@ -1331,64 +1331,79 @@ return dumpstack
 					bytes = loaderDelegate (fn, ref absoluteFn);
 				else {
 #if !SLUA_STANDALONE
+					// 保存原始文件名用于 AssetBundle 查找
+					string originalFn = fn;
 					fn = fn.Replace (".", "/");
 
 					TextAsset asset = null;
+					string loadSource = "";
 
+					// 优先尝试从 AssetBundle 加载（运行时模式）
+//#if !UNITY_EDITOR
+					asset = LuaAssetBundleLoader.TryLoadLuaFile(originalFn);
+					if (asset != null)
+					{
+						loadSource = "AssetBundle";
+					}
+//#endif
+
+					// 如果 AssetBundle 加载失败，回退到 Resources
+					if (asset == null)
+					{
 #if UNITY_EDITOR
-
-
-					if (SLuaSetting.Instance.jitType == JITBUILDTYPE.none) {
-						asset = (TextAsset)Resources.Load (fn);
-					}
-					else if (SLuaSetting.Instance.jitType == JITBUILDTYPE.X86) {
-						asset = loadAsset("Assets/Slua/jit/jitx86/" + fn + ".bytes");
-					} else if (SLuaSetting.Instance.jitType == JITBUILDTYPE.X64) {
-						asset = loadAsset("Assets/Slua/jit/jitx64/" + fn + ".bytes");
-					} else if (SLuaSetting.Instance.jitType == JITBUILDTYPE.GC64) {
-						asset = loadAsset("Assets/Slua/jit/jitgc64/" + fn + ".bytes");
-					}
-
-#if LUA_DEBUG
-					//get asset's absolute path
-					string assetFn = UnityEditor.AssetDatabase.GetAssetPath(asset);
-					if (assetFn != ""){
-						//find out asset path, remove assetFn's first "Asset/"
-						int idx = assetFn.IndexOf("/");
-						if(idx > 0){
-							absoluteFn = Application.dataPath + assetFn.Substring(idx);
+						if (SLuaSetting.Instance.jitType == JITBUILDTYPE.none) {
+							asset = (TextAsset)Resources.Load (fn);
+						}
+						else if (SLuaSetting.Instance.jitType == JITBUILDTYPE.X86) {
+							asset = loadAsset("Assets/Slua/jit/jitx86/" + fn + ".bytes");
+						} else if (SLuaSetting.Instance.jitType == JITBUILDTYPE.X64) {
+							asset = loadAsset("Assets/Slua/jit/jitx64/" + fn + ".bytes");
+						} else if (SLuaSetting.Instance.jitType == JITBUILDTYPE.GC64) {
+							asset = loadAsset("Assets/Slua/jit/jitgc64/" + fn + ".bytes");
+						}
+#else
+						asset = (TextAsset)Resources.Load(fn);
+#endif
+						if (asset != null)
+						{
+							loadSource = "Resources";
 						}
 					}
-#endif
-#else
-					asset = (TextAsset)Resources.Load(fn);
-#endif
 
 					if (asset == null)
 						return null;
+
+					// 记录加载来源
+					if (!string.IsNullOrEmpty(loadSource))
+					{
+						Logger.Log($"[Slua] 从 {loadSource} 加载 Lua 文件: {originalFn}");
+					}
 					
-					// 输出加载的Lua文件完整路径日志
-					string filePath = "";
+					// 输出加载的Lua文件完整路径日志（仅当从 Resources 加载时）
+					if (loadSource == "Resources")
+					{
+						string filePath = "";
 #if UNITY_EDITOR
-					string assetPath = UnityEditor.AssetDatabase.GetAssetPath(asset);
-					if (!string.IsNullOrEmpty(assetPath))
-					{
-						// AssetDatabase路径是相对于项目根目录的，转换为完整路径
-						// Application.dataPath 是 "项目路径/Assets"，需要去掉 "Assets" 部分
-						string projectPath = Application.dataPath.Substring(0, Application.dataPath.Length - 6);
-						filePath = System.IO.Path.Combine(projectPath, assetPath);
-						filePath = filePath.Replace('\\', '/'); // 统一使用正斜杠
-					}
-					else
-					{
-						// 如果无法获取AssetDatabase路径，使用Resources路径
-						filePath = Application.dataPath + "/Slua/Resources/" + fn + ".txt";
-					}
+						string assetPath = UnityEditor.AssetDatabase.GetAssetPath(asset);
+						if (!string.IsNullOrEmpty(assetPath))
+						{
+							// AssetDatabase路径是相对于项目根目录的，转换为完整路径
+							// Application.dataPath 是 "项目路径/Assets"，需要去掉 "Assets" 部分
+							string projectPath = Application.dataPath.Substring(0, Application.dataPath.Length - 6);
+							filePath = System.IO.Path.Combine(projectPath, assetPath);
+							filePath = filePath.Replace('\\', '/'); // 统一使用正斜杠
+						}
+						else
+						{
+							// 如果无法获取AssetDatabase路径，使用Resources路径
+							filePath = Application.dataPath + "/Slua/Resources/" + fn + ".txt";
+						}
 #else
-					// 运行时使用Resources路径
-					filePath = Application.dataPath + "/Slua/Resources/" + fn + ".txt";
+						// 运行时使用Resources路径
+						filePath = Application.dataPath + "/Slua/Resources/" + fn + ".txt";
 #endif
-					Logger.Log(string.Format("[Slua] 加载Lua文件: {0}", filePath));
+						Logger.Log(string.Format("[Slua] 加载Lua文件: {0}", filePath));
+					}
 					
 					bytes = asset.bytes;
 #else
