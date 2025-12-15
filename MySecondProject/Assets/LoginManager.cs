@@ -14,7 +14,6 @@ public class LoginManager : MonoBehaviour
 
     void Start()
     {
-
         // 给登录按钮添加点击事件
         loginButton.onClick.AddListener(OnLoginButtonClicked);
 
@@ -36,6 +35,7 @@ public class LoginManager : MonoBehaviour
         {
             Debug.Log("LoginPanel已赋值: " + loginPanel.name);
         }
+
         Debug.Log("登录界面已加载");
     }
 
@@ -70,7 +70,7 @@ public class LoginManager : MonoBehaviour
             Debug.Log("登录成功！");
             titleText.text = "登录成功！";
             titleText.color = Color.green;
-
+            
             // 登录成功后延迟隐藏登录界面（让用户看到成功提示）
             StartCoroutine(HideLoginPanelAfterDelay(1.5f));
         }
@@ -105,7 +105,4 @@ public class LoginManager : MonoBehaviour
         }
     }
 
-    void OnDestroy()
-    {
-    }
 }

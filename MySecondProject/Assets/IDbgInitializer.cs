@@ -54,12 +54,44 @@ public static class IDbgInitializer
 
         try
         {
-            IDbgWrapper.IDbg_Log_SetDelegate(logDelegate);
-            IDbgWrapper.IDbg_Log_SetVerbosity(IDbgWrapper.LogLevel.kInfo);
-
-            // 初始化 IDbg
+            // 先初始化 IDbg
             if (IDbgWrapper.Initialize())
             {
+                // 初始化成功后再设置日志回调
+                // 注意：由于 C++ std::function 的复杂性，日志委托设置可能导致崩溃
+                // 暂时禁用日志委托设置，避免崩溃
+                // TODO: 需要 C 包装器 DLL 来正确桥接 C# 委托和 C++ std::function
+                /*
+                try
+                {
+                    IDbgWrapper.IDbg_Log_SetDelegate(logDelegate);
+                }
+                catch (System.EntryPointNotFoundException e)
+                {
+                    Debug.LogWarning($"[IDbgInitializer] 设置日志委托失败: 函数未找到 - {e.Message}");
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning($"[IDbgInitializer] 设置日志委托失败: {e.Message}");
+                }
+                */
+                Debug.LogWarning("[IDbgInitializer] 日志委托设置已禁用，以避免 C++ std::function 崩溃问题");
+
+                // 设置日志详细程度
+                try
+                {
+                    IDbgWrapper.IDbg_Log_SetVerbosity(IDbgWrapper.LogLevel.kInfo);
+                }
+                catch (System.EntryPointNotFoundException e)
+                {
+                    Debug.LogWarning($"[IDbgInitializer] 设置日志详细程度失败: 函数未找到 - {e.Message}");
+                    Debug.LogWarning("[IDbgInitializer] 提示: 使用 dumpbin /exports IDbg.dll 查看实际的导出函数名");
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning($"[IDbgInitializer] 设置日志详细程度失败: {e.Message}");
+                }
+
                 isInitialized = true;
                 Debug.Log("[IDbgInitializer] IDbg 库初始化成功");
                 
@@ -70,6 +102,15 @@ public static class IDbgInitializer
             {
                 Debug.LogError("[IDbgInitializer] IDbg 库初始化失败");
             }
+        }
+        catch (System.EntryPointNotFoundException e)
+        {
+            Debug.LogError($"[IDbgInitializer] 初始化 IDbg 时出错: 函数未找到 - {e.Message}");
+            Debug.LogError("[IDbgInitializer] 提示: 使用 dumpbin /exports IDbg.dll 查看实际的导出函数名");
+        }
+        catch (System.DllNotFoundException e)
+        {
+            Debug.LogError($"[IDbgInitializer] 初始化 IDbg 时出错: DLL 未找到 - {e.Message}");
         }
         catch (System.Exception e)
         {
