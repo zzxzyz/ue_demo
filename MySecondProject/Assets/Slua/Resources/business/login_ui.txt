@@ -44,6 +44,8 @@ end
 -- 存储UI组件引用
 local usernameInput = nil
 local passwordInput = nil
+local usernameText = nil
+local passwordText = nil
 local loginButton = nil
 local cancelButton = nil
 local titleText = nil
@@ -100,6 +102,18 @@ local function InitUITexts()
     
     if passwordInput then
         I18n.SetInputPlaceholder(passwordInput, "login_password_placeholder")
+    end
+    
+    -- 设置用户名标签文本
+    if usernameText then
+        Debug.Log("设置用户名标签文本: " .. I18n.Get("login_username"))
+        I18n.SetText(usernameText, "login_username")
+    end
+    
+    -- 设置密码标签文本
+    if passwordText then
+        Debug.Log("设置密码标签文本: " .. I18n.Get("login_password"))
+        I18n.SetText(passwordText, "login_password")
     end
     
     Debug.Log("[Lua] UI多语言文本已初始化")
@@ -209,6 +223,36 @@ local function InitUIComponents()
         titleText = titleGO:GetComponent("TextMeshProUGUI")
     end
     
+    -- 查找用户名标签文本
+    local usernameTextGO = GameObject.Find("LoginPanel/UsernameText")
+    if not usernameTextGO then
+        usernameTextGO = GameObject.Find("UsernameText")
+    end
+    if not usernameTextGO and loginPanel then
+        local child = loginPanel.transform:Find("UsernameText")
+        if child then
+            usernameTextGO = child.gameObject
+        end
+    end
+    if usernameTextGO then
+        usernameText = usernameTextGO:GetComponent("TextMeshProUGUI")
+    end
+    
+    -- 查找密码标签文本
+    local passwordTextGO = GameObject.Find("LoginPanel/PasswordText")
+    if not passwordTextGO then
+        passwordTextGO = GameObject.Find("PasswordText")
+    end
+    if not passwordTextGO and loginPanel then
+        local child = loginPanel.transform:Find("PasswordText")
+        if child then
+            passwordTextGO = child.gameObject
+        end
+    end
+    if passwordTextGO then
+        passwordText = passwordTextGO:GetComponent("TextMeshProUGUI")
+    end
+    
     -- 验证所有组件是否找到
     if not usernameInput then
         Debug.LogWarning("未找到用户名输入框 (UsernameInput with TMP_InputField)")
@@ -224,6 +268,12 @@ local function InitUIComponents()
     end
     if not titleText then
         Debug.LogWarning("未找到标题文本 (TitleText with TextMeshProUGUI)")
+    end
+    if not usernameText then
+        Debug.LogWarning("未找到用户名标签文本 (UsernameText with TextMeshProUGUI)")
+    end
+    if not passwordText then
+        Debug.LogWarning("未找到密码标签文本 (PasswordText with TextMeshProUGUI)")
     end
     
     -- 初始化UI组件的多语言文本
