@@ -7,14 +7,21 @@ public class LuaStarter : MonoBehaviour
     
     void Start()
     {
-        // 初始化 AssetBundle 加载器（优先从 AssetBundle 加载）
-        LuaAssetBundleLoader.Initialize();
-        
-        // 初始化Lua虚拟机
-        luaSvr = new LuaSvr();
-        
-        // 初始化slua，使用基本模式 + 扩展库（包含 socket）
-        luaSvr.init(null, OnLuaInitComplete, LuaSvrFlag.LSF_BASIC | LuaSvrFlag.LSF_EXTLIB);
+        try
+        {
+            // 初始化 AssetBundle 加载器（优先从 AssetBundle 加载）
+            SLua.LuaAssetBundleLoader.Initialize();
+            
+            // 初始化Lua虚拟机
+            luaSvr = new LuaSvr();
+            
+            // 初始化slua，使用基本模式 + 扩展库（包含 socket）
+            luaSvr.init(null, OnLuaInitComplete, LuaSvrFlag.LSF_BASIC | LuaSvrFlag.LSF_EXTLIB);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[LuaStarter] 初始化失败: {e.Message}\n{e.StackTrace}");
+        }
     }
     
     void OnLuaInitComplete()
@@ -56,7 +63,7 @@ public class LuaStarter : MonoBehaviour
         }
         
         // 清理 AssetBundle 资源
-        LuaAssetBundleLoader.UnloadAll();
+        SLua.LuaAssetBundleLoader.UnloadAll();
     }
 }
 
