@@ -39,6 +39,7 @@ public class LuaStarter : MonoBehaviour
         //方式2：加载并执行Lua脚本文件（hello.txt位于Assets / Slua / Resources目录）
         luaSvr.start("hello");
         luaSvr.start("business.login_ui");
+        luaSvr.start("world");
 
         // 初始化C#和Lua之间的桥接
         LoginBridge.Instance.InitializeBridge();

@@ -14,6 +14,10 @@ namespace SLua
         private static AssetBundleManifest manifest = null;
         private static AssetBundle manifestBundle = null;
         private static string assetBundleBasePath = null;
+        
+        // 自动映射表：Lua文件名 -> AssetBundle名称
+        // 例如: "hello" -> "login.logic", "business.login_ui" -> "login.logic"
+        private static Dictionary<string, string> luaFileToBundleMap = new Dictionary<string, string>();
 
         /// <summary>
         /// 初始化 AssetBundle 加载器
@@ -44,6 +48,9 @@ namespace SLua
 
             // 加载主清单
             LoadManifest();
+            
+            // 自动扫描并建立映射表
+            BuildAutoMapping();
         }
 
         /// <summary>
@@ -191,20 +198,151 @@ namespace SLua
         }
 
         /// <summary>
-        /// 根据 Lua 文件名获取对应的 AssetBundle 名称
+        /// 自动扫描所有 AssetBundle 的 manifest，建立 Lua 文件到 Bundle 的映射
+        /// </summary>
+        private static void BuildAutoMapping()
+        {
+            luaFileToBundleMap.Clear();
+
+            if (manifest == null)
+            {
+                Logger.LogWarning("[LuaAssetBundleLoader] 主清单未加载，无法建立自动映射");
+                return;
+            }
+
+            try
+            {
+                // 获取所有 AssetBundle 名称
+                string[] allBundles = manifest.GetAllAssetBundles();
+                
+                foreach (string bundleName in allBundles)
+                {
+                    // 读取每个 Bundle 的 manifest 文件
+                    string manifestPath = Path.Combine(assetBundleBasePath, bundleName + ".manifest");
+                    
+                    if (File.Exists(manifestPath))
+                    {
+                        ParseBundleManifest(manifestPath, bundleName);
+                    }
+                    else
+                    {
+                        Logger.LogWarning($"[LuaAssetBundleLoader] 未找到 manifest 文件: {manifestPath}");
+                    }
+                }
+
+                Logger.Log($"[LuaAssetBundleLoader] 自动映射完成，共映射 {luaFileToBundleMap.Count} 个 Lua 文件");
+            }
+            catch (System.Exception e)
+            {
+                Logger.LogError($"[LuaAssetBundleLoader] 建立自动映射失败: {e.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 解析单个 AssetBundle 的 manifest 文件
+        /// </summary>
+        private static void ParseBundleManifest(string manifestPath, string bundleName)
+        {
+            try
+            {
+                string[] lines = File.ReadAllLines(manifestPath);
+                bool inAssetsSection = false;
+                
+                foreach (string line in lines)
+                {
+                    string trimmedLine = line.Trim();
+                    
+                    // 检测 Assets 部分开始
+                    if (trimmedLine == "Assets:")
+                    {
+                        inAssetsSection = true;
+                        continue;
+                    }
+                    
+                    // 检测下一个主要部分（结束 Assets 部分）
+                    if (inAssetsSection && trimmedLine.StartsWith("-") == false && 
+                        trimmedLine.Length > 0 && !trimmedLine.StartsWith(" "))
+                    {
+                        inAssetsSection = false;
+                        continue;
+                    }
+                    
+                    // 解析 Assets 列表
+                    if (inAssetsSection && trimmedLine.StartsWith("- Assets/Slua/Resources/"))
+                    {
+                        // 提取资源路径，例如: "- Assets/Slua/Resources/hello.txt"
+                        string assetPath = trimmedLine.Substring(2).Trim(); // 去掉 "- " 前缀
+                        
+                        // 转换为 Lua 文件名
+                        // "Assets/Slua/Resources/hello.txt" -> "hello"
+                        // "Assets/Slua/Resources/business/login_ui.txt" -> "business.login_ui"
+                        string luaFileName = ConvertAssetPathToLuaFileName(assetPath);
+                        
+                        if (!string.IsNullOrEmpty(luaFileName))
+                        {
+                            // 如果已存在映射，记录警告（可能有冲突）
+                            if (luaFileToBundleMap.ContainsKey(luaFileName))
+                            {
+                                Logger.LogWarning($"[LuaAssetBundleLoader] Lua 文件 '{luaFileName}' 在多个 Bundle 中存在: {luaFileToBundleMap[luaFileName]} 和 {bundleName}");
+                            }
+                            
+                            luaFileToBundleMap[luaFileName] = bundleName;
+                            Logger.Log($"[LuaAssetBundleLoader] 映射: {luaFileName} -> {bundleName}");
+                        }
+                    }
+                }
+            }
+            catch (System.Exception e)
+            {
+                Logger.LogError($"[LuaAssetBundleLoader] 解析 manifest 失败 {manifestPath}: {e.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 将资源路径转换为 Lua 文件名
+        /// </summary>
+        /// <param name="assetPath">例如: "Assets/Slua/Resources/hello.txt" 或 "Assets/Slua/Resources/business/login_ui.txt"</param>
+        /// <returns>例如: "hello" 或 "business.login_ui"</returns>
+        private static string ConvertAssetPathToLuaFileName(string assetPath)
+        {
+            const string resourcesPrefix = "Assets/Slua/Resources/";
+            const string txtExtension = ".txt";
+            
+            if (!assetPath.StartsWith(resourcesPrefix) || !assetPath.EndsWith(txtExtension))
+            {
+                return null;
+            }
+            
+            // 提取相对路径部分
+            // "Assets/Slua/Resources/hello.txt" -> "hello.txt"
+            // "Assets/Slua/Resources/business/login_ui.txt" -> "business/login_ui.txt"
+            string relativePath = assetPath.Substring(resourcesPrefix.Length);
+            
+            // 去掉 .txt 扩展名
+            // "hello.txt" -> "hello"
+            // "business/login_ui.txt" -> "business/login_ui"
+            string withoutExtension = relativePath.Substring(0, relativePath.Length - txtExtension.Length);
+            
+            // 将路径分隔符转换为点号
+            // "hello" -> "hello"
+            // "business/login_ui" -> "business.login_ui"
+            string luaFileName = withoutExtension.Replace("/", ".");
+            
+            return luaFileName;
+        }
+
+        /// <summary>
+        /// 根据 Lua 文件名获取对应的 AssetBundle 名称（自动映射）
         /// </summary>
         private static string GetBundleNameForLuaFile(string luaFileName)
         {
-            // 这里可以根据你的命名规则映射
-            // 例如: "business.login_ui" -> "login.logic"
-            if (luaFileName == "business.login_ui")
+            // 优先使用自动映射表
+            if (luaFileToBundleMap.ContainsKey(luaFileName))
             {
-                return "login.logic";
+                return luaFileToBundleMap[luaFileName];
             }
 
-            // 可以添加更多映射规则
-            // 或者从配置文件读取映射关系
-
+            // 如果没有自动映射，返回 null（将回退到 Resources 加载）
             return null;
         }
 

@@ -1,9 +1,9 @@
 ManifestFileVersion: 0
-CRC: 2544839526
+CRC: 2300021478
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: f2a056e08100144f84ccbaa6cd700f9f
+    Hash: 7be47ea78fa5e1691ef1bbba77960a42
   TypeTreeHash:
     serializedVersion: 2
     Hash: 5ad585dd02dfb5016c0dad519eab8f49
@@ -13,5 +13,6 @@ ClassTypes:
   Script: {instanceID: 0}
 Assets:
 - Assets/Slua/Resources/hello.txt
+- Assets/Slua/Resources/world.txt
 - Assets/Slua/Resources/business/login_ui.txt
 Dependencies: []
