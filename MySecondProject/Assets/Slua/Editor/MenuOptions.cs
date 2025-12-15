@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using System.IO;
 
 namespace SLua
 {
@@ -8,12 +9,12 @@ namespace SLua
         private static bool isLuaPandaEnabled = false;
         private const string LUAPANDA_PREF_KEY = "SLua_LuaPanda_Enabled";
 
-        [MenuItem("选项/LuaPanda")]
+        [MenuItem("应用扩展/LuaPanda")]
         public static void ToggleLuaPanda()
         {
             // 切换勾选状态
             isLuaPandaEnabled = !isLuaPandaEnabled;
-            Menu.SetChecked("选项/LuaPanda", isLuaPandaEnabled);
+            Menu.SetChecked("应用扩展/LuaPanda", isLuaPandaEnabled);
             
             // 保存状态到EditorPrefs以便持久化（Editor模式）
             EditorPrefs.SetBool(LUAPANDA_PREF_KEY, isLuaPandaEnabled);
@@ -25,7 +26,7 @@ namespace SLua
             // 在这里添加LuaPanda的具体功能代码
         }
 
-        [MenuItem("选项/LuaPanda", true)]
+        [MenuItem("应用扩展/LuaPanda", true)]
         public static bool ValidateToggleLuaPanda()
         {
             // 从EditorPrefs加载状态
@@ -33,7 +34,7 @@ namespace SLua
             // 同步到PlayerPrefs以便运行时访问
             PlayerPrefs.SetInt(LUAPANDA_PREF_KEY, isLuaPandaEnabled ? 1 : 0);
             // 设置菜单项的勾选状态
-            Menu.SetChecked("选项/LuaPanda", isLuaPandaEnabled);
+            Menu.SetChecked("应用扩展/LuaPanda", isLuaPandaEnabled);
             return true;
         }
 
@@ -58,12 +59,12 @@ namespace SLua
         private static bool isAsyncLoginEnabled = true;
         private const string ASYNC_LOGIN_PREF_KEY = "SLua_AsyncLogin_Enabled";
 
-        [MenuItem("选项/异步登录")]
+        [MenuItem("应用扩展/异步登录")]
         public static void ToggleAsyncLogin()
         {
             // 切换勾选状态
             isAsyncLoginEnabled = !isAsyncLoginEnabled;
-            Menu.SetChecked("选项/异步登录", isAsyncLoginEnabled);
+            Menu.SetChecked("应用扩展/异步登录", isAsyncLoginEnabled);
             
             // 保存状态到EditorPrefs以便持久化（Editor模式）
             EditorPrefs.SetBool(ASYNC_LOGIN_PREF_KEY, isAsyncLoginEnabled);
@@ -74,7 +75,7 @@ namespace SLua
             Debug.Log($"异步登录: {(isAsyncLoginEnabled ? "已启用" : "已禁用")}");
         }
 
-        [MenuItem("选项/异步登录", true)]
+        [MenuItem("应用扩展/异步登录", true)]
         public static bool ValidateToggleAsyncLogin()
         {
             // 从EditorPrefs加载状态（默认启用）
@@ -82,7 +83,7 @@ namespace SLua
             // 同步到PlayerPrefs以便运行时访问
             PlayerPrefs.SetInt(ASYNC_LOGIN_PREF_KEY, isAsyncLoginEnabled ? 1 : 0);
             // 设置菜单项的勾选状态
-            Menu.SetChecked("选项/异步登录", isAsyncLoginEnabled);
+            Menu.SetChecked("应用扩展/异步登录", isAsyncLoginEnabled);
             return true;
         }
 
@@ -114,31 +115,31 @@ namespace SLua
         private const string LUA_LOAD_MODE_PREF_KEY = "SLua_LuaLoadMode";
         private static LuaLoadMode currentLoadMode = LuaLoadMode.Local;
 
-        [MenuItem("选项/加载模式/本地")]
+        [MenuItem("应用扩展/加载模式/本地")]
         public static void SetLoadModeLocal()
         {
             SetLoadMode(LuaLoadMode.Local);
         }
 
-        [MenuItem("选项/加载模式/本地", true)]
+        [MenuItem("应用扩展/加载模式/本地", true)]
         public static bool ValidateSetLoadModeLocal()
         {
             currentLoadMode = GetLoadMode();
-            Menu.SetChecked("选项/加载模式/本地", currentLoadMode == LuaLoadMode.Local);
+            Menu.SetChecked("应用扩展/加载模式/本地", currentLoadMode == LuaLoadMode.Local);
             return true;
         }
 
-        [MenuItem("选项/加载模式/AssetBundle")]
+        [MenuItem("应用扩展/加载模式/AssetBundle")]
         public static void SetLoadModeAssetBundle()
         {
             SetLoadMode(LuaLoadMode.AssetBundle);
         }
 
-        [MenuItem("选项/加载模式/AssetBundle", true)]
+        [MenuItem("应用扩展/加载模式/AssetBundle", true)]
         public static bool ValidateSetLoadModeAssetBundle()
         {
             currentLoadMode = GetLoadMode();
-            Menu.SetChecked("选项/加载模式/AssetBundle", currentLoadMode == LuaLoadMode.AssetBundle);
+            Menu.SetChecked("应用扩展/加载模式/AssetBundle", currentLoadMode == LuaLoadMode.AssetBundle);
             return true;
         }
 
@@ -147,8 +148,8 @@ namespace SLua
             currentLoadMode = mode;
             
             // 更新菜单勾选状态
-            Menu.SetChecked("选项/加载模式/本地", mode == LuaLoadMode.Local);
-            Menu.SetChecked("选项/加载模式/AssetBundle", mode == LuaLoadMode.AssetBundle);
+            Menu.SetChecked("应用扩展/加载模式/本地", mode == LuaLoadMode.Local);
+            Menu.SetChecked("应用扩展/加载模式/AssetBundle", mode == LuaLoadMode.AssetBundle);
             
             // 保存状态到EditorPrefs以便持久化（Editor模式）
             EditorPrefs.SetInt(LUA_LOAD_MODE_PREF_KEY, (int)mode);
@@ -176,6 +177,27 @@ namespace SLua
             #else
             return LuaLoadMode.Local;
             #endif
+        }
+
+        // ========== AssetBundle 打包功能 ==========
+        [MenuItem("应用扩展/打包 AssetBundles")]
+        public static void BuildAllAssetBundles()
+        {
+            // 创建输出目录
+            string outputPath = "Assets/AssetBundles";
+            if (!Directory.Exists(outputPath))
+            {
+                Directory.CreateDirectory(outputPath);
+            }
+            
+            // 打包AssetBundles
+            BuildPipeline.BuildAssetBundles(
+                outputPath,
+                BuildAssetBundleOptions.None,
+                EditorUserBuildSettings.activeBuildTarget
+            );
+            
+            Debug.Log("AssetBundle打包完成！路径: " + outputPath);
         }
     }
 }
