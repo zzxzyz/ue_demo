@@ -10,6 +10,7 @@ local zh_CN = {
     login_username = "用户名",
     login_password = "密码",
     login_button = "登录",
+    login_cancel_button = "取消",
     login_username_placeholder = "请输入用户名",
     login_password_placeholder = "请输入密码",
     login_success = "登录成功！",

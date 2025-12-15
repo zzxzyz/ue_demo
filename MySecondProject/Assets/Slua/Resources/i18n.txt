@@ -212,19 +212,35 @@ end
 -- 设置Button的文本（通过Button子对象的Text组件）
 -- @param button Button组件
 -- @param key 多语言键值
-function I18n.SetButtonText(button, key, ...)
+-- @param childName 可选，子控件名称（默认为"Text"）
+-- @param ... 可选参数，用于字符串格式化
+function I18n.SetButtonText(button, key, childName, ...)
     if not button then
         return false
     end
     
-    local text = I18n.Get(key, ...)
+    -- 如果第三个参数是字符串且不是数字，则认为是子控件名称
+    -- 否则第三个参数是格式化参数
+    local formatArgs = {...}
+    local actualChildName = "Text"  -- 默认子控件名称
+    
+    if childName and type(childName) == "string" and not tonumber(childName) then
+        actualChildName = childName
+    else
+        -- 如果第三个参数不是字符串，则将其作为格式化参数
+        if childName ~= nil then
+            formatArgs = {childName, ...}
+        end
+    end
+    
+    local text = I18n.Get(key, unpack(formatArgs))
     
     -- 尝试查找Button子对象中的Text组件
     local textComp = nil
     
     -- 查找TextMeshProUGUI
     if button.transform then
-        local child = button.transform:Find("Text")
+        local child = button.transform:Find(actualChildName)
         if child then
             textComp = child.gameObject:GetComponent("TextMeshProUGUI")
         end
@@ -248,6 +264,12 @@ function I18n.SetButtonText(button, key, ...)
     if textComp and textComp.text ~= nil then
         textComp.text = text
         return true
+    else
+        if Debug and Debug.LogWarning then
+            local msg = "[I18n] SetButtonText: 未找到文本组件 (Button: " .. 
+                       tostring(button.name) .. ", 子控件: " .. actualChildName .. ")"
+            Debug.LogWarning(msg)
+        end
     end
     
     return false

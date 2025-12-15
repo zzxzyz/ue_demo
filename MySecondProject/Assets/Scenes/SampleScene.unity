@@ -790,6 +790,50 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7098592592860848433, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_Name
+      value: LoginButtonText
+      objectReference: {fileID: 0}
+    - target: {fileID: 7098592592860848435, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 08bb5d5e2a4747b4bb7d309a8c817697,
+        type: 2}
+    - target: {fileID: 7098592592860848435, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 21956315060381530, guid: 08bb5d5e2a4747b4bb7d309a8c817697,
+        type: 2}
+    - target: {fileID: 7098592592860848435, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_firstOverflowCharacterIndex
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7098592592913890492, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_Name
+      value: CancelButtonText
+      objectReference: {fileID: 0}
+    - target: {fileID: 7098592592913890494, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 08bb5d5e2a4747b4bb7d309a8c817697,
+        type: 2}
+    - target: {fileID: 7098592592913890494, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 21956315060381530, guid: 08bb5d5e2a4747b4bb7d309a8c817697,
+        type: 2}
+    - target: {fileID: 7098592592913890494, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_firstOverflowCharacterIndex
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7098592592934918452, guid: db8fd86c540d9c4459915eb06247081e,
         type: 3}
       propertyPath: m_AnchorMin.y

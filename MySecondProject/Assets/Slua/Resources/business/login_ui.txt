@@ -45,6 +45,7 @@ end
 local usernameInput = nil
 local passwordInput = nil
 local loginButton = nil
+local cancelButton = nil
 local titleText = nil
 local loginPanel = nil
 
@@ -80,10 +81,16 @@ local function InitUITexts()
         I18n.SetText(titleText, "login_title")
     end
     
-    -- 设置登录按钮文本
+    -- 设置登录按钮文本（通过子控件 LoginButtonText）
     if loginButton then
         Debug.Log("设置登录按钮文本: " .. I18n.Get("login_button"))
-        I18n.SetButtonText(loginButton, "login_button")
+        I18n.SetButtonText(loginButton, "login_button", "LoginButtonText")
+    end
+    
+    -- 设置取消按钮文本（通过子控件 CancelButtonText）
+    if cancelButton then
+        Debug.Log("设置取消按钮文本: " .. I18n.Get("login_cancel_button"))
+        I18n.SetButtonText(cancelButton, "login_cancel_button", "CancelButtonText")
     end
     
     -- 设置输入框占位符文本
@@ -166,6 +173,21 @@ local function InitUIComponents()
         loginButton = buttonGO:GetComponent("Button")
     end
     
+    -- 查找取消按钮
+    local cancelButtonGO = GameObject.Find("LoginPanel/CancelButton")
+    if not cancelButtonGO then
+        cancelButtonGO = GameObject.Find("CancelButton")
+    end
+    if not cancelButtonGO and loginPanel then
+        local child = loginPanel.transform:Find("CancelButton")
+        if child then
+            cancelButtonGO = child.gameObject
+        end
+    end
+    if cancelButtonGO then
+        cancelButton = cancelButtonGO:GetComponent("Button")
+    end
+    
     -- 查找标题文本（支持多种可能的名称）
     local titleGO = GameObject.Find("LoginPanel/TitleText")
     if not titleGO then
@@ -196,6 +218,9 @@ local function InitUIComponents()
     end
     if not loginButton then
         Debug.LogWarning("未找到登录按钮 (LoginButton with Button)")
+    end
+    if not cancelButton then
+        Debug.LogWarning("未找到取消按钮 (CancelButton with Button)")
     end
     if not titleText then
         Debug.LogWarning("未找到标题文本 (TitleText with TextMeshProUGUI)")
@@ -367,6 +392,35 @@ local function OnLoginButtonClicked()
     end
 end
 
+-- 取消按钮点击处理函数
+local function OnCancelButtonClicked()
+    Debug.Log("[Lua] 点击了取消按钮")
+    
+    -- 隐藏登录界面
+    if loginPanel then
+        loginPanel:SetActive(false)
+        Debug.Log("[Lua] 登录界面已隐藏（取消操作）")
+    else
+        Debug.LogWarning("[Lua] 无法隐藏登录界面：loginPanel为null！")
+    end
+    
+    -- 清空输入框
+    if usernameInput then
+        usernameInput.text = ""
+    end
+    if passwordInput then
+        passwordInput.text = ""
+    end
+    
+    -- 重置标题文本
+    if titleText then
+        titleText.text = I18n.Get("login_title")
+        if Color and Color.white then
+            titleText.color = Color.white  -- 重置颜色
+        end
+    end
+end
+
 -- ========== 公开的配置和工具函数 ==========
 -- 设置登录方式（同步或异步）
 -- @param useAsync true=异步登录, false=同步登录
@@ -477,6 +531,12 @@ function LoginManager.Start()
             Debug.Log("登录按钮点击事件已绑定")
         end
         
+        -- 给取消按钮添加点击事件
+        if cancelButton then
+            cancelButton.onClick:AddListener(OnCancelButtonClicked)
+            Debug.Log("取消按钮点击事件已绑定")
+        end
+        
         -- 尝试注册回调函数到C#（如果C#桥接已初始化）
         if CSharpBridge and CSharpBridge.Bridge then
             LoginManager.RegisterCallbacksToCSharp()
@@ -503,11 +563,15 @@ function LoginManager.OnDestroy()
     if loginButton then
         loginButton.onClick:RemoveAllListeners()
     end
+    if cancelButton then
+        cancelButton.onClick:RemoveAllListeners()
+    end
     
     -- 清空引用
     usernameInput = nil
     passwordInput = nil
     loginButton = nil
+    cancelButton = nil
     titleText = nil
     loginPanel = nil
 end
