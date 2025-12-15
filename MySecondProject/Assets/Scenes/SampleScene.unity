@@ -563,6 +563,43 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7098592591622414350, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 08bb5d5e2a4747b4bb7d309a8c817697,
+        type: 2}
+    - target: {fileID: 7098592591622414350, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 21956315060381530, guid: 08bb5d5e2a4747b4bb7d309a8c817697,
+        type: 2}
+    - target: {fileID: 7098592591622414350, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_firstOverflowCharacterIndex
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7098592591622414350, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_fontColor.r
+      value: 0.084905684
+      objectReference: {fileID: 0}
+    - target: {fileID: 7098592591622414350, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_fontColor.g
+      value: 0.0809007
+      objectReference: {fileID: 0}
+    - target: {fileID: 7098592591622414350, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_fontColor.b
+      value: 0.0809007
+      objectReference: {fileID: 0}
+    - target: {fileID: 7098592591622414350, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4279505941
+      objectReference: {fileID: 0}
     - target: {fileID: 7098592591622414351, guid: db8fd86c540d9c4459915eb06247081e,
         type: 3}
       propertyPath: m_AnchorMin.y
