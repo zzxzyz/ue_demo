@@ -106,33 +106,49 @@ namespace IDbg
         [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, EntryPoint = "?GetProcessCreateTime@IDbg@@YA_KXZ")]
         public static extern ulong GetProcessCreateTime();
 
-        // ========== Log 单例访问 ==========
+        // ========== Log C API 接口 ==========
         /// <summary>
-        /// 获取 Log 单例实例（使用实际的 C++ mangled 函数名）
+        /// 日志回调函数类型（C API）
         /// </summary>
-        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, EntryPoint = "?Instance@?$Singleton@VLog@IDbg@@@IDbg@@SAPEAVLog@2@XZ")]
-        private static extern IntPtr GetLogInstance();
-
-        // ========== Log 类方法 ==========
-        /// <summary>
-        /// 设置日志详细程度（Log类的成员函数，需要Log实例指针）
-        /// 注意：在 x64 平台上，C++ 成员函数使用统一的调用约定（类似 Cdecl）
-        /// this 指针作为第一个参数传递
-        /// </summary>
-        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, EntryPoint = "?SetVerbosity@Log@IDbg@@QEAAXW4LogLevel@2@@Z")]
-        private static extern void SetVerbosity(IntPtr logInstance, LogLevel verbosity);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate void IDBG_LogCallback(LogLevel level, [MarshalAs(UnmanagedType.LPStr)] string msg);
 
         /// <summary>
-        /// 设置日志委托（Log类的成员函数，需要Log实例指针）
-        /// 注意：这个函数接受 std::function，但我们尝试传递函数指针
-        /// 在 x64 平台上，std::function 可能可以接受函数指针
+        /// 设置日志回调函数（C API）
         /// </summary>
-        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, EntryPoint = "?SetDelegate@Log@IDbg@@QEAAX$$QEAV?$function@$$A6AXW4LogLevel@IDbg@@PEBD@Z@std@@@Z")]
-        private static extern void SetDelegate(IntPtr logInstance, IntPtr functionPtr);
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, EntryPoint = "IDBG_LogSetCallback")]
+        private static extern void IDBG_LogSetCallback(IntPtr callback);
+
+        /// <summary>
+        /// 设置日志详细程度（C API）
+        /// </summary>
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, EntryPoint = "IDBG_LogSetVerbosity")]
+        private static extern void IDBG_LogSetVerbosity(LogLevel verbosity);
+
+        /// <summary>
+        /// 日志输出函数（C API）
+        /// </summary>
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, EntryPoint = "IDBG_LogDebug")]
+        public static extern void IDBG_LogDebug([MarshalAs(UnmanagedType.LPStr)] string fmt);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, EntryPoint = "IDBG_LogInfo")]
+        public static extern void IDBG_LogInfo([MarshalAs(UnmanagedType.LPStr)] string fmt);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, EntryPoint = "IDBG_LogWarning")]
+        public static extern void IDBG_LogWarning([MarshalAs(UnmanagedType.LPStr)] string fmt);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, EntryPoint = "IDBG_LogError")]
+        public static extern void IDBG_LogError([MarshalAs(UnmanagedType.LPStr)] string fmt);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, EntryPoint = "IDBG_LogPerf")]
+        public static extern void IDBG_LogPerf([MarshalAs(UnmanagedType.LPStr)] string fmt);
+
+        [DllImport(DLL_NAME, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, EntryPoint = "IDBG_Log")]
+        public static extern void IDBG_Log(LogLevel level, [MarshalAs(UnmanagedType.LPStr)] string fmt);
 
         // 保持委托引用，防止被 GC 回收
         private static GCHandle logDelegateHandle;
-        private static LogDelegate currentLogDelegate;
+        private static IDBG_LogCallback currentLogCallback;
 
         // ========== 公共接口（保持向后兼容） ==========
         /// <summary>
@@ -158,11 +174,21 @@ namespace IDbg
         {
             try
             {
+                // 先禁用日志回调
+                try
+                {
+                    IDBG_LogSetCallback(IntPtr.Zero);
+                }
+                catch
+                {
+                    // 忽略错误，继续清理
+                }
+
                 // 释放委托引用
                 if (logDelegateHandle.IsAllocated)
                 {
                     logDelegateHandle.Free();
-                    currentLogDelegate = null;
+                    currentLogCallback = null;
                 }
 
                 UninitializeEnv();
@@ -174,21 +200,13 @@ namespace IDbg
         }
 
         /// <summary>
-        /// 设置日志详细程度（公共接口）
+        /// 设置日志详细程度（公共接口，使用C API）
         /// </summary>
         public static void IDbg_Log_SetVerbosity(LogLevel verbosity)
         {
             try
             {
-                IntPtr logInstance = GetLogInstance();
-                if (logInstance != IntPtr.Zero)
-                {
-                    SetVerbosity(logInstance, verbosity);
-                }
-                else
-                {
-                    Debug.LogWarning("[IDbg] 无法获取 Log 实例");
-                }
+                IDBG_LogSetVerbosity(verbosity);
             }
             catch (Exception e)
             {
@@ -197,48 +215,49 @@ namespace IDbg
         }
 
         /// <summary>
-        /// 设置日志委托（公共接口）
-        /// 注意：由于 C++ std::function 的复杂性，这个函数尝试使用函数指针
+        /// 设置日志委托（公共接口，使用C API）
         /// </summary>
         public static void IDbg_Log_SetDelegate(LogDelegate delegateFunc)
         {
             try
             {
-                IntPtr logInstance = GetLogInstance();
-                if (logInstance == IntPtr.Zero)
-                {
-                    Debug.LogWarning("[IDbg] 无法获取 Log 实例");
-                    return;
-                }
-
                 // 释放之前的委托引用（如果存在）
                 if (logDelegateHandle.IsAllocated)
                 {
                     logDelegateHandle.Free();
+                    currentLogCallback = null;
                 }
 
+                if (delegateFunc == null)
+                {
+                    // 传递 NULL 以禁用回调
+                    IDBG_LogSetCallback(IntPtr.Zero);
+                    return;
+                }
+
+                // 创建C API兼容的回调委托
+                IDBG_LogCallback callback = (level, msg) =>
+                {
+                    delegateFunc(level, msg);
+                };
+
                 // 保存委托引用，防止被 GC 回收
-                currentLogDelegate = delegateFunc;
-                logDelegateHandle = GCHandle.Alloc(currentLogDelegate);
+                currentLogCallback = callback;
+                logDelegateHandle = GCHandle.Alloc(currentLogCallback);
 
-                // 获取委托的函数指针
-                IntPtr functionPtr = Marshal.GetFunctionPointerForDelegate(currentLogDelegate);
-
-                // 尝试调用 SetDelegate
-                // 注意：这可能在 C++ 端不工作，因为 std::function 需要特殊构造
-                // 但如果 C++ 端有接受函数指针的构造函数，这可能可以工作
-                SetDelegate(logInstance, functionPtr);
+                // 获取委托的函数指针并传递给C API
+                IntPtr functionPtr = Marshal.GetFunctionPointerForDelegate(currentLogCallback);
+                IDBG_LogSetCallback(functionPtr);
             }
             catch (EntryPointNotFoundException e)
             {
-                Debug.LogWarning($"[IDbg] SetDelegate 函数未找到: {e.Message}");
-                Debug.LogWarning("[IDbg] 提示: 可能需要 C 包装器 DLL 来桥接 C# 委托和 C++ std::function");
+                Debug.LogWarning($"[IDbg] IDBG_LogSetCallback 函数未找到: {e.Message}");
+                Debug.LogWarning("[IDbg] 提示: 请确保使用最新版本的 IDbg.dll，包含 C API 接口");
             }
             catch (Exception e)
             {
                 Debug.LogError($"[IDbg] 设置日志委托时出错: {e.Message}");
                 Debug.LogException(e);
-                Debug.LogWarning("[IDbg] 提示: C++ std::function 不能直接从 C# 传递，可能需要 C 包装器 DLL");
             }
         }
 

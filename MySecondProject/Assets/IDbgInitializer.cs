@@ -57,25 +57,21 @@ public static class IDbgInitializer
             // 先初始化 IDbg
             if (IDbgWrapper.Initialize())
             {
-                // 初始化成功后再设置日志回调
-                // 注意：由于 C++ std::function 的复杂性，日志委托设置可能导致崩溃
-                // 暂时禁用日志委托设置，避免崩溃
-                // TODO: 需要 C 包装器 DLL 来正确桥接 C# 委托和 C++ std::function
-                /*
+                // 初始化成功后再设置日志回调（使用新的C API）
                 try
                 {
                     IDbgWrapper.IDbg_Log_SetDelegate(logDelegate);
+                    Debug.Log("[IDbgInitializer] 日志委托设置成功");
                 }
                 catch (System.EntryPointNotFoundException e)
                 {
                     Debug.LogWarning($"[IDbgInitializer] 设置日志委托失败: 函数未找到 - {e.Message}");
+                    Debug.LogWarning("[IDbgInitializer] 提示: 请确保使用最新版本的 IDbg.dll，包含 C API 接口");
                 }
                 catch (System.Exception e)
                 {
                     Debug.LogWarning($"[IDbgInitializer] 设置日志委托失败: {e.Message}");
                 }
-                */
-                Debug.LogWarning("[IDbgInitializer] 日志委托设置已禁用，以避免 C++ std::function 崩溃问题");
 
                 // 设置日志详细程度
                 try
@@ -85,7 +81,7 @@ public static class IDbgInitializer
                 catch (System.EntryPointNotFoundException e)
                 {
                     Debug.LogWarning($"[IDbgInitializer] 设置日志详细程度失败: 函数未找到 - {e.Message}");
-                    Debug.LogWarning("[IDbgInitializer] 提示: 使用 dumpbin /exports IDbg.dll 查看实际的导出函数名");
+                    Debug.LogWarning("[IDbgInitializer] 提示: 请确保使用最新版本的 IDbg.dll，包含 C API 接口");
                 }
                 catch (System.Exception e)
                 {

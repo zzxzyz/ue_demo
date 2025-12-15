@@ -10,6 +10,7 @@ public class RotateCube : MonoBehaviour
         // 使用IDbg获取系统信息（IDbgInitializer已自动初始化）
         if (IDbgWrapper.IsAvailable())
         {
+            IDbgWrapper.IDBG_LogInfo("立方体开始旋转了！from idbg");
             Debug.Log($"CPU核心数: {IDbgWrapper.GetCpuCore()}");
             Debug.Log($"进程ID: {IDbgWrapper.GetProcessId()}");
         }
