@@ -62,6 +62,9 @@ public static class IDbgInitializer
             {
                 isInitialized = true;
                 Debug.Log("[IDbgInitializer] IDbg 库初始化成功");
+                
+                // 注册应用退出时的清理回调
+                Application.quitting += CleanupIDbg;
             }
             else
             {
@@ -73,15 +76,6 @@ public static class IDbgInitializer
             Debug.LogError($"[IDbgInitializer] 初始化 IDbg 时出错: {e.Message}");
             Debug.LogException(e);
         }
-    }
-
-    /// <summary>
-    /// 在应用退出时清理 IDbg
-    /// </summary>
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void RegisterCleanup()
-    {
-        Application.quitting += CleanupIDbg;
     }
 
     static void CleanupIDbg()
