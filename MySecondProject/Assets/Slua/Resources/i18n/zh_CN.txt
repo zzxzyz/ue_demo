@@ -1,0 +1,44 @@
+--[[
+    @language lua
+    @filetype lua
+    简体中文语言包
+--]]
+
+local zh_CN = {
+    -- 登录界面
+    login_title = "登录",
+    login_username = "用户名",
+    login_password = "密码",
+    login_button = "登录",
+    login_username_placeholder = "请输入用户名",
+    login_password_placeholder = "请输入密码",
+    login_success = "登录成功！",
+    login_failed = "登录失败！",
+    login_error_username_or_password = "用户名或密码错误",
+    login_error_username_empty = "请输入用户名！",
+    login_error_password_empty = "请输入密码！",
+    login_error_ui_not_ready = "UI组件未初始化完成！",
+    login_loading = "正在登录...",
+    
+    -- 通用消息
+    confirm = "确认",
+    cancel = "取消",
+    ok = "确定",
+    error = "错误",
+    success = "成功",
+    warning = "警告",
+    info = "信息",
+    
+    -- 调试信息
+    debug_login_button_clicked = "点击了登录按钮",
+    debug_username = "用户名：",
+    debug_password = "密码：",
+    debug_login_mode_async = "异步",
+    debug_login_mode_sync = "同步",
+    debug_login_mode_set = "登录模式已设置为: ",
+    debug_login_interface_loaded = "登录界面已加载",
+    debug_login_interface_hidden = "登录界面已隐藏",
+}
+
+return zh_CN
+

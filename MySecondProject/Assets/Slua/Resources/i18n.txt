@@ -1,0 +1,329 @@
+--[[
+    @language lua
+    @filetype lua
+    多语言管理模块 (i18n)
+    支持动态语言切换和文本本地化
+    注意：UnityEngine 命名空间应该已经在全局可用（由其他模块导入）
+--]]
+
+local I18n = {}
+
+-- 当前语言代码（默认：zh_CN）
+I18n.currentLanguage = "zh_CN"
+
+-- 语言数据表
+I18n.languages = {}
+
+-- 支持的语言列表
+I18n.supportedLanguages = {
+    zh_CN = "简体中文",
+    zh_TW = "繁体中文",
+    en_US = "English",
+    ja_JP = "日本語",
+    ko_KR = "한국어"
+}
+
+-- ========== 语言映射表 ==========
+-- 将Unity的SystemLanguage映射到我们的语言代码
+-- 注意：如果 UnityEngine 未定义，使用数字常量作为后备
+local languageMap = {}
+if UnityEngine and UnityEngine.SystemLanguage then
+    languageMap[UnityEngine.SystemLanguage.Chinese] = "zh_CN"
+    languageMap[UnityEngine.SystemLanguage.ChineseSimplified] = "zh_CN"
+    languageMap[UnityEngine.SystemLanguage.ChineseTraditional] = "zh_TW"
+    languageMap[UnityEngine.SystemLanguage.English] = "en_US"
+    languageMap[UnityEngine.SystemLanguage.Japanese] = "ja_JP"
+    languageMap[UnityEngine.SystemLanguage.Korean] = "ko_KR"
+else
+    -- 使用数字常量作为后备（Unity SystemLanguage 枚举值）
+    languageMap[6] = "zh_CN"   -- Chinese
+    languageMap[40] = "zh_CN"  -- ChineseSimplified
+    languageMap[41] = "zh_TW"  -- ChineseTraditional
+    languageMap[10] = "en_US"  -- English
+    languageMap[22] = "ja_JP"  -- Japanese
+    languageMap[23] = "ko_KR"  -- Korean
+end
+
+-- ========== 初始化函数 ==========
+-- 加载语言数据
+function I18n.LoadLanguage(langCode)
+    if not langCode then
+        langCode = I18n.currentLanguage
+    end
+    
+    -- 尝试加载语言文件
+    local ok, langData = pcall(function()
+        return require("i18n." .. langCode)
+    end)
+    
+    if ok and langData then
+        I18n.languages[langCode] = langData
+        I18n.currentLanguage = langCode
+        if Debug and Debug.Log then
+            Debug.Log("[I18n] 语言已加载: " .. langCode)
+        end
+        return true
+    else
+        if Debug and Debug.LogWarning then
+            Debug.LogWarning("[I18n] 无法加载语言文件: " .. langCode .. "，使用默认语言 zh_CN")
+        end
+        -- 尝试加载默认语言
+        if langCode ~= "zh_CN" then
+            return I18n.LoadLanguage("zh_CN")
+        end
+        return false
+    end
+end
+
+-- 初始化多语言系统
+function I18n.Init()
+    -- 检测系统语言
+    local systemLang = nil
+    if UnityEngine and UnityEngine.Application then
+        systemLang = UnityEngine.Application.systemLanguage
+    end
+    
+    local detectedLang = "zh_CN"
+    if systemLang and languageMap[systemLang] then
+        detectedLang = languageMap[systemLang]
+    end
+    
+    if Debug and Debug.Log then
+        Debug.Log("[I18n] 检测到系统语言: " .. tostring(systemLang) .. " -> " .. detectedLang)
+    end
+    
+    -- 尝试从PlayerPrefs读取用户设置的语言
+    if UnityEngine and UnityEngine.PlayerPrefs then
+        local savedLang = UnityEngine.PlayerPrefs.GetString("I18n_Language", "")
+        if savedLang ~= "" and I18n.supportedLanguages[savedLang] then
+            detectedLang = savedLang
+            if Debug and Debug.Log then
+                Debug.Log("[I18n] 使用用户设置的语言: " .. savedLang)
+            end
+        end
+    end
+    
+    -- 加载语言
+    I18n.LoadLanguage(detectedLang)
+end
+
+-- ========== 核心函数 ==========
+-- 获取本地化文本
+-- @param key 文本键值
+-- @param ... 可选参数，用于格式化字符串
+-- @return 本地化后的文本
+function I18n.Get(key, ...)
+    local langData = I18n.languages[I18n.currentLanguage]
+    if not langData then
+        Debug.LogWarning("[I18n] 当前语言数据未加载: " .. I18n.currentLanguage)
+        -- 尝试加载默认语言
+        if I18n.currentLanguage ~= "zh_CN" then
+            I18n.LoadLanguage("zh_CN")
+            langData = I18n.languages["zh_CN"]
+        end
+    end
+    
+    if langData and langData[key] then
+        local text = langData[key]
+        -- 如果有参数，进行字符串格式化
+        if select("#", ...) > 0 then
+            return string.format(text, ...)
+        end
+        return text
+    else
+        if Debug and Debug.LogWarning then
+            Debug.LogWarning("[I18n] 未找到文本键值: " .. key .. " (语言: " .. I18n.currentLanguage .. ")")
+        end
+        return key  -- 返回键值本身作为后备
+    end
+end
+
+-- 简写函数
+function I18n.T(key, ...)
+    return I18n.Get(key, ...)
+end
+
+-- ========== 语言切换 ==========
+-- 切换语言
+-- @param langCode 语言代码（如 "zh_CN", "en_US"）
+function I18n.SetLanguage(langCode)
+    if not I18n.supportedLanguages[langCode] then
+        if Debug and Debug.LogWarning then
+            Debug.LogWarning("[I18n] 不支持的语言代码: " .. langCode)
+        end
+        return false
+    end
+    
+    if I18n.LoadLanguage(langCode) then
+        -- 保存用户设置
+        if UnityEngine and UnityEngine.PlayerPrefs then
+            UnityEngine.PlayerPrefs.SetString("I18n_Language", langCode)
+            UnityEngine.PlayerPrefs.Save()
+        end
+        
+        if Debug and Debug.Log then
+            Debug.Log("[I18n] 语言已切换为: " .. langCode)
+        end
+        return true
+    end
+    
+    return false
+end
+
+-- 获取当前语言代码
+function I18n.GetCurrentLanguage()
+    return I18n.currentLanguage
+end
+
+-- 获取当前语言的显示名称
+function I18n.GetCurrentLanguageName()
+    return I18n.supportedLanguages[I18n.currentLanguage] or I18n.currentLanguage
+end
+
+-- 获取所有支持的语言
+function I18n.GetSupportedLanguages()
+    return I18n.supportedLanguages
+end
+
+-- ========== 便捷函数 ==========
+-- 检查是否已初始化
+function I18n.IsInitialized()
+    return I18n.currentLanguage ~= nil and I18n.languages[I18n.currentLanguage] ~= nil
+end
+
+-- ========== UI辅助函数 ==========
+-- 设置Text组件的多语言文本
+-- @param textComponent Text或TextMeshProUGUI组件
+-- @param key 多语言键值
+function I18n.SetText(textComponent, key, ...)
+    if not textComponent then
+        return false
+    end
+    
+    local text = I18n.Get(key, ...)
+    if textComponent.text ~= nil then
+        textComponent.text = text
+        return true
+    end
+    
+    return false
+end
+
+-- 设置Button的文本（通过Button子对象的Text组件）
+-- @param button Button组件
+-- @param key 多语言键值
+function I18n.SetButtonText(button, key, ...)
+    if not button then
+        return false
+    end
+    
+    local text = I18n.Get(key, ...)
+    
+    -- 尝试查找Button子对象中的Text组件
+    local textComp = nil
+    
+    -- 查找TextMeshProUGUI
+    if button.transform then
+        local child = button.transform:Find("Text")
+        if child then
+            textComp = child.gameObject:GetComponent("TextMeshProUGUI")
+        end
+        
+        -- 如果没找到，尝试查找UI.Text
+        if not textComp then
+            if child then
+                textComp = child.gameObject:GetComponent("Text")
+            end
+        end
+        
+        -- 如果还是没找到，尝试直接获取Button上的Text组件
+        if not textComp then
+            textComp = button.gameObject:GetComponent("TextMeshProUGUI")
+            if not textComp then
+                textComp = button.gameObject:GetComponent("Text")
+            end
+        end
+    end
+    
+    if textComp and textComp.text ~= nil then
+        textComp.text = text
+        return true
+    end
+    
+    return false
+end
+
+-- 设置InputField的占位符文本（Placeholder）
+-- @param inputField TMP_InputField或InputField组件
+-- @param key 多语言键值
+function I18n.SetInputPlaceholder(inputField, key, ...)
+    if not inputField then
+        return false
+    end
+    
+    local text = I18n.Get(key, ...)
+    
+    -- 尝试设置TMP_InputField的占位符
+    if inputField.placeholder ~= nil then
+        local placeholder = inputField.placeholder
+        if placeholder.text ~= nil then
+            placeholder.text = text
+            return true
+        end
+    end
+    
+    return false
+end
+
+-- 设置InputField的文本
+-- @param inputField TMP_InputField或InputField组件
+-- @param text 文本内容（可选，如果为空则清空）
+function I18n.SetInputText(inputField, text)
+    if not inputField then
+        return false
+    end
+    
+    if inputField.text ~= nil then
+        inputField.text = text or ""
+        return true
+    end
+    
+    return false
+end
+
+-- 批量设置UI组件的多语言文本
+-- @param config 配置表，格式：{component = {type = "text|button|placeholder", key = "i18n_key"}}
+-- 示例：
+-- I18n.SetUI({
+--     {component = titleText, type = "text", key = "login_title"},
+--     {component = loginButton, type = "button", key = "login_button"},
+--     {component = usernameInput, type = "placeholder", key = "login_username"},
+-- })
+function I18n.SetUI(config)
+    if not config or type(config) ~= "table" then
+        return false
+    end
+    
+    local successCount = 0
+    for i, item in ipairs(config) do
+        if item.component and item.type and item.key then
+            local success = false
+            if item.type == "text" then
+                success = I18n.SetText(item.component, item.key)
+            elseif item.type == "button" then
+                success = I18n.SetButtonText(item.component, item.key)
+            elseif item.type == "placeholder" then
+                success = I18n.SetInputPlaceholder(item.component, item.key)
+            end
+            
+            if success then
+                successCount = successCount + 1
+            end
+        end
+    end
+    
+    return successCount
+end
+
+return I18n
+

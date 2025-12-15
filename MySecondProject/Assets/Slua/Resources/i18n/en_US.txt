@@ -1,0 +1,44 @@
+--[[
+    @language lua
+    @filetype lua
+    English Language Pack
+--]]
+
+local en_US = {
+    -- Login Interface
+    login_title = "Login",
+    login_username = "Username",
+    login_password = "Password",
+    login_button = "Login",
+    login_username_placeholder = "Enter username",
+    login_password_placeholder = "Enter password",
+    login_success = "Login successful!",
+    login_failed = "Login failed!",
+    login_error_username_or_password = "Invalid username or password",
+    login_error_username_empty = "Please enter username!",
+    login_error_password_empty = "Please enter password!",
+    login_error_ui_not_ready = "UI components not initialized!",
+    login_loading = "Logging in...",
+    
+    -- Common Messages
+    confirm = "Confirm",
+    cancel = "Cancel",
+    ok = "OK",
+    error = "Error",
+    success = "Success",
+    warning = "Warning",
+    info = "Info",
+    
+    -- Debug Messages
+    debug_login_button_clicked = "Login button clicked",
+    debug_username = "Username: ",
+    debug_password = "Password: ",
+    debug_login_mode_async = "Async",
+    debug_login_mode_sync = "Sync",
+    debug_login_mode_set = "Login mode set to: ",
+    debug_login_interface_loaded = "Login interface loaded",
+    debug_login_interface_hidden = "Login interface hidden",
+}
+
+return en_US
+
