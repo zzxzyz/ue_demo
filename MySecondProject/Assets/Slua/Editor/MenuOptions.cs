@@ -103,6 +103,80 @@ namespace SLua
             return true;
             #endif
         }
+
+        // ========== Lua 加载模式设置 ==========
+        public enum LuaLoadMode
+        {
+            Local = 0,      // 从 Resources 加载
+            AssetBundle = 1 // 从 AssetBundle 加载
+        }
+
+        private const string LUA_LOAD_MODE_PREF_KEY = "SLua_LuaLoadMode";
+        private static LuaLoadMode currentLoadMode = LuaLoadMode.Local;
+
+        [MenuItem("选项/加载模式/本地")]
+        public static void SetLoadModeLocal()
+        {
+            SetLoadMode(LuaLoadMode.Local);
+        }
+
+        [MenuItem("选项/加载模式/本地", true)]
+        public static bool ValidateSetLoadModeLocal()
+        {
+            currentLoadMode = GetLoadMode();
+            Menu.SetChecked("选项/加载模式/本地", currentLoadMode == LuaLoadMode.Local);
+            return true;
+        }
+
+        [MenuItem("选项/加载模式/AssetBundle")]
+        public static void SetLoadModeAssetBundle()
+        {
+            SetLoadMode(LuaLoadMode.AssetBundle);
+        }
+
+        [MenuItem("选项/加载模式/AssetBundle", true)]
+        public static bool ValidateSetLoadModeAssetBundle()
+        {
+            currentLoadMode = GetLoadMode();
+            Menu.SetChecked("选项/加载模式/AssetBundle", currentLoadMode == LuaLoadMode.AssetBundle);
+            return true;
+        }
+
+        private static void SetLoadMode(LuaLoadMode mode)
+        {
+            currentLoadMode = mode;
+            
+            // 更新菜单勾选状态
+            Menu.SetChecked("选项/加载模式/本地", mode == LuaLoadMode.Local);
+            Menu.SetChecked("选项/加载模式/AssetBundle", mode == LuaLoadMode.AssetBundle);
+            
+            // 保存状态到EditorPrefs以便持久化（Editor模式）
+            EditorPrefs.SetInt(LUA_LOAD_MODE_PREF_KEY, (int)mode);
+            // 同时保存到PlayerPrefs以便运行时访问
+            PlayerPrefs.SetInt(LUA_LOAD_MODE_PREF_KEY, (int)mode);
+            PlayerPrefs.Save();
+            
+            string modeName = mode == LuaLoadMode.Local ? "本地" : "AssetBundle";
+            Debug.Log($"Lua 加载模式已设置为: {modeName}");
+        }
+
+        /// <summary>
+        /// 获取当前加载模式（运行时可用）
+        /// </summary>
+        public static LuaLoadMode GetLoadMode()
+        {
+            // 优先从PlayerPrefs读取（运行时）
+            if (PlayerPrefs.HasKey(LUA_LOAD_MODE_PREF_KEY))
+            {
+                return (LuaLoadMode)PlayerPrefs.GetInt(LUA_LOAD_MODE_PREF_KEY, (int)LuaLoadMode.Local);
+            }
+            // 如果PlayerPrefs中没有，尝试从EditorPrefs读取（Editor模式，默认本地）
+            #if UNITY_EDITOR
+            return (LuaLoadMode)EditorPrefs.GetInt(LUA_LOAD_MODE_PREF_KEY, (int)LuaLoadMode.Local);
+            #else
+            return LuaLoadMode.Local;
+            #endif
+        }
     }
 }
 

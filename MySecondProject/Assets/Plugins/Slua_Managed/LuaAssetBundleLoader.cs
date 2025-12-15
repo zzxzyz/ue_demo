@@ -154,6 +154,12 @@ namespace SLua
         /// <returns>TextAsset 或 null</returns>
         public static TextAsset TryLoadLuaFile(string luaFileName)
         {
+            // 检查加载模式设置
+            if (!ShouldLoadFromAssetBundle())
+            {
+                return null;
+            }
+
             // 映射 Lua 文件名到 AssetBundle
             // 例如: "business.login_ui" -> "login.logic" bundle
             string bundleName = GetBundleNameForLuaFile(luaFileName);
@@ -166,6 +172,22 @@ namespace SLua
             string assetPath = "Assets/Slua/Resources/" + luaFileName.Replace(".", "/") + ".txt";
 
             return LoadFromAssetBundle(bundleName, assetPath);
+        }
+
+        /// <summary>
+        /// 检查是否应该从 AssetBundle 加载
+        /// </summary>
+        private static bool ShouldLoadFromAssetBundle()
+        {
+#if UNITY_EDITOR
+            // Editor 模式下从 EditorPrefs 读取
+            int mode = UnityEditor.EditorPrefs.GetInt("SLua_LuaLoadMode", 0);
+            return mode == 1; // 1 = AssetBundle
+#else
+            // 运行时从 PlayerPrefs 读取
+            int mode = PlayerPrefs.GetInt("SLua_LuaLoadMode", 0);
+            return mode == 1; // 1 = AssetBundle
+#endif
         }
 
         /// <summary>
