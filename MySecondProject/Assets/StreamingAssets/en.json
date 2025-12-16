@@ -1,6 +1,35 @@
 {
     "items": [
         { "key": "main_menu_start", "value": "Start Game" },
-        { "key": "main_menu_quit", "value": "Quit" }
+        { "key": "main_menu_quit", "value": "Quit" },
+        { "key": "login_title", "value": "Login" },
+        { "key": "login_username", "value": "Username" },
+        { "key": "login_password", "value": "Password" },
+        { "key": "login_button", "value": "Login" },
+        { "key": "login_cancel_button", "value": "Cancel" },
+        { "key": "login_username_placeholder", "value": "Enter username" },
+        { "key": "login_password_placeholder", "value": "Enter password" },
+        { "key": "login_success", "value": "Login successful!" },
+        { "key": "login_failed", "value": "Login failed!" },
+        { "key": "login_error_username_or_password", "value": "Invalid username or password" },
+        { "key": "login_error_username_empty", "value": "Please enter username!" },
+        { "key": "login_error_password_empty", "value": "Please enter password!" },
+        { "key": "login_error_ui_not_ready", "value": "UI components not initialized!" },
+        { "key": "login_loading", "value": "Logging in..." },
+        { "key": "confirm", "value": "Confirm" },
+        { "key": "cancel", "value": "Cancel" },
+        { "key": "ok", "value": "OK" },
+        { "key": "error", "value": "Error" },
+        { "key": "success", "value": "Success" },
+        { "key": "warning", "value": "Warning" },
+        { "key": "info", "value": "Info" },
+        { "key": "debug_login_button_clicked", "value": "Login button clicked" },
+        { "key": "debug_username", "value": "Username: " },
+        { "key": "debug_password", "value": "Password: " },
+        { "key": "debug_login_mode_async", "value": "Async" },
+        { "key": "debug_login_mode_sync", "value": "Sync" },
+        { "key": "debug_login_mode_set", "value": "Login mode set to: " },
+        { "key": "debug_login_interface_loaded", "value": "Login interface loaded" },
+        { "key": "debug_login_interface_hidden", "value": "Login interface hidden" }
     ]
 }

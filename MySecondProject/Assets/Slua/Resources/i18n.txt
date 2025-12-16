@@ -45,27 +45,43 @@ else
 end
 
 -- ========== 初始化函数 ==========
--- 加载语言数据
+-- 加载语言数据（统一使用 JSON 配置文件，通过 C# LocalizationManager 加载）
 function I18n.LoadLanguage(langCode)
     if not langCode then
         langCode = I18n.currentLanguage
     end
     
-    -- 尝试加载语言文件
-    local ok, langData = pcall(function()
-        return require("i18n." .. langCode)
-    end)
+    -- 尝试获取 LocalizationManager 实例
+    local manager = nil
+    if LocalizationManager then
+        -- 先尝试使用静态 Instance
+        if LocalizationManager.Instance then
+            manager = LocalizationManager.Instance
+        else
+            -- 如果 Instance 不存在，尝试通过 FindObjectOfType 查找
+            if Object and Object.FindObjectOfType and LocalizationManager then
+                -- 直接传递类，SLua 会自动处理类型转换
+                manager = Object.FindObjectOfType(LocalizationManager)
+                if manager then
+                    LocalizationManager.Instance = manager
+                end
+            end
+        end
+    end
     
-    if ok and langData then
-        I18n.languages[langCode] = langData
+    -- 通过 C# LocalizationManager 加载语言
+    if manager then
+        manager:LoadLocalizedText(langCode)
         I18n.currentLanguage = langCode
+        -- 创建一个代理表，用于 I18n.Get 函数访问
+        I18n.languages[langCode] = {}
         if Debug and Debug.Log then
             Debug.Log("[I18n] 语言已加载: " .. langCode)
         end
         return true
     else
         if Debug and Debug.LogWarning then
-            Debug.LogWarning("[I18n] 无法加载语言文件: " .. langCode .. "，使用默认语言 zh_CN")
+            Debug.LogWarning("[I18n] LocalizationManager 未找到，请确保场景中存在 LocalizationManager 组件")
         end
         -- 尝试加载默认语言
         if langCode ~= "zh_CN" then
@@ -108,33 +124,53 @@ function I18n.Init()
 end
 
 -- ========== 核心函数 ==========
--- 获取本地化文本
+-- 获取本地化文本（统一使用 C# LocalizationManager 从 JSON 文件读取）
 -- @param key 文本键值
 -- @param ... 可选参数，用于格式化字符串
 -- @return 本地化后的文本
 function I18n.Get(key, ...)
-    local langData = I18n.languages[I18n.currentLanguage]
-    if not langData then
-        Debug.LogWarning("[I18n] 当前语言数据未加载: " .. I18n.currentLanguage)
-        -- 尝试加载默认语言
-        if I18n.currentLanguage ~= "zh_CN" then
-            I18n.LoadLanguage("zh_CN")
-            langData = I18n.languages["zh_CN"]
+    -- 尝试获取 LocalizationManager 实例
+    local manager = nil
+    if LocalizationManager then
+        -- 先尝试使用静态 Instance
+        if LocalizationManager.Instance then
+            manager = LocalizationManager.Instance
+        else
+            -- 如果 Instance 不存在，尝试通过 FindObjectOfType 查找
+            if Object and Object.FindObjectOfType and LocalizationManager then
+                -- 直接传递类，SLua 会自动处理类型转换
+                manager = Object.FindObjectOfType(LocalizationManager)
+                if manager then
+                    LocalizationManager.Instance = manager
+                end
+            end
         end
     end
     
-    if langData and langData[key] then
-        local text = langData[key]
+    -- 优先使用 C# LocalizationManager 获取文本
+    if manager then
+        local text = manager:GetLocalizedValue(key)
         -- 如果有参数，进行字符串格式化
         if select("#", ...) > 0 then
+            -- Lua 的 string.format 使用 %s, %d 等占位符
             return string.format(text, ...)
         end
         return text
     else
-        if Debug and Debug.LogWarning then
-            Debug.LogWarning("[I18n] 未找到文本键值: " .. key .. " (语言: " .. I18n.currentLanguage .. ")")
+        -- 如果 LocalizationManager 不可用，尝试从缓存的 Lua 数据获取（向后兼容）
+        local langData = I18n.languages[I18n.currentLanguage]
+        if langData and langData[key] then
+            local text = langData[key]
+            if select("#", ...) > 0 then
+                return string.format(text, ...)
+            end
+            return text
+        else
+            if Debug and Debug.LogWarning then
+                Debug.LogWarning("[I18n] 未找到文本键值: " .. key .. " (语言: " .. I18n.currentLanguage .. ")，LocalizationManager 可能未初始化")
+            end
+            return key  -- 返回键值本身作为后备
         end
-        return key  -- 返回键值本身作为后备
     end
 end
 

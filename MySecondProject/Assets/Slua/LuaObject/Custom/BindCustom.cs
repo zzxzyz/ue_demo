@@ -5,6 +5,7 @@ namespace SLua {
 	public class BindCustom {
 		public static Action<IntPtr>[] GetBindList() {
 			Action<IntPtr>[] list= {
+				Lua_LocalizationManager.reg,
 				Lua_LoginService.reg,
 				Lua_Custom.reg,
 				Lua_Deleg.reg,
