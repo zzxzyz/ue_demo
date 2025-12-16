@@ -70,54 +70,8 @@ local function FindComponentByPath(path, componentType)
     return nil
 end
 
--- 初始化UI文本（多语言）
--- 注意：此函数必须在 InitUIComponents 之前定义，因为 InitUIComponents 会调用它
-local function InitUITexts()
-    -- 确保多语言系统已初始化
-    if not I18n.IsInitialized() then
-        I18n.Init()
-    end
-    
-    -- 设置标题文本
-    if titleText then
-        I18n.SetText(titleText, "login_title")
-    end
-    
-    -- 设置登录按钮文本（通过子控件 LoginButtonText）
-    if loginButton then
-        Debug.Log("设置登录按钮文本: " .. I18n.Get("login_button"))
-        I18n.SetButtonText(loginButton, "login_button", "LoginButtonText")
-    end
-    
-    -- 设置取消按钮文本（通过子控件 CancelButtonText）
-    if cancelButton then
-        Debug.Log("设置取消按钮文本: " .. I18n.Get("login_cancel_button"))
-        I18n.SetButtonText(cancelButton, "login_cancel_button", "CancelButtonText")
-    end
-    
-    -- 设置输入框占位符文本
-    if usernameInput then
-        I18n.SetInputPlaceholder(usernameInput, "login_username_placeholder")
-    end
-    
-    if passwordInput then
-        I18n.SetInputPlaceholder(passwordInput, "login_password_placeholder")
-    end
-    
-    -- 设置用户名标签文本
-    if usernameText then
-        Debug.Log("设置用户名标签文本: " .. I18n.Get("login_username"))
-        I18n.SetText(usernameText, "login_username")
-    end
-    
-    -- 设置密码标签文本
-    if passwordText then
-        Debug.Log("设置密码标签文本: " .. I18n.Get("login_password"))
-        I18n.SetText(passwordText, "login_password")
-    end
-    
-    Debug.Log("[Lua] UI多语言文本已初始化")
-end
+-- 注意：UI多语言文本已在编辑器中通过 LocalizedText 组件设置
+-- 无需在此初始化，LocalizedText 组件会在语言切换时自动更新
 
 -- 初始化UI组件
 local function InitUIComponents()
@@ -276,8 +230,7 @@ local function InitUIComponents()
         Debug.LogWarning("未找到密码标签文本 (PasswordText with TextMeshProUGUI)")
     end
     
-    -- 初始化UI组件的多语言文本
-    InitUITexts()
+    -- 注意：UI多语言文本已在编辑器中通过 LocalizedText 组件设置，无需在此初始化
     
     return true
 end
@@ -362,16 +315,15 @@ end
 -- 异步登录：调用C#的异步登录函数，使用回调处理结果
 local function LoginAsync(username, password)
     Debug.Log("[Lua] 使用异步登录方式")
-    
     if not CSharpBridge or not CSharpBridge.LoginService then
         Debug.LogWarning("[Lua] CSharpBridge未初始化，回退到简单验证")
         return LoginSimple(username, password)
     end
-    
+
     -- 定义Lua回调函数
     local function onLoginSuccess(user, msg)
         Debug.Log("[Lua] 异步登录成功回调: " .. user .. ", " .. msg)
-        
+
         -- 保存登录状态
         CSharpBridge.LoginService:SaveLoginState(user)
         
@@ -488,35 +440,19 @@ end
 
 -- ========== 多语言相关函数 ==========
 -- 切换语言
--- @param langCode 语言代码（如 "zh_CN", "en_US"）
+-- @param langCode 语言代码（使用 BCP 47 标准，如 "zh-CN", "en-US"）
 function LoginManager.SetLanguage(langCode)
     if I18n.SetLanguage(langCode) then
-        -- 刷新UI文本
-        LoginManager.RefreshUITexts()
+        -- LocalizedText 组件会自动更新，无需手动刷新
+        Debug.Log("[Lua] 语言已切换为: " .. langCode)
         return true
     end
     return false
 end
 
--- 初始化UI文本（供外部调用）
-function LoginManager.InitUITexts()
-    InitUITexts()
-end
-
 -- 获取当前语言
 function LoginManager.GetCurrentLanguage()
     return I18n.GetCurrentLanguage()
-end
-
--- 刷新UI文本（切换语言后调用）
-function LoginManager.RefreshUITexts()
-    -- 如果UI组件已初始化，重新设置多语言文本
-    if I18n.IsInitialized() then
-        InitUITexts()
-        Debug.Log("[Lua] UI文本已刷新")
-    else
-        Debug.LogWarning("[Lua] 多语言系统未初始化，无法刷新UI文本")
-    end
 end
 
 -- ========== 供C#调用的Lua函数 ==========

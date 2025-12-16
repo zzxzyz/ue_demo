@@ -45,6 +45,31 @@ else
     languageMap[23] = "ko-KR"  -- Korean
 end
 
+-- ========== 辅助函数 ==========
+-- 获取 LocalizationManager 实例
+-- @return LocalizationManager 实例，如果未找到则返回 nil
+local function GetLocalizationManager()
+    if not LocalizationManager then
+        return nil
+    end
+    
+    -- 先尝试使用静态 Instance
+    if LocalizationManager.Instance then
+        return LocalizationManager.Instance
+    end
+    
+    -- 如果 Instance 不存在，尝试通过 FindObjectOfType 查找
+    if Object and Object.FindObjectOfType then
+        local manager = Object.FindObjectOfType(LocalizationManager)
+        if manager then
+            LocalizationManager.Instance = manager
+            return manager
+        end
+    end
+    
+    return nil
+end
+
 -- ========== 初始化函数 ==========
 -- 加载语言数据（统一使用 JSON 配置文件，通过 C# LocalizationManager 加载）
 function I18n.LoadLanguage(langCode)
@@ -53,22 +78,7 @@ function I18n.LoadLanguage(langCode)
     end
     
     -- 尝试获取 LocalizationManager 实例
-    local manager = nil
-    if LocalizationManager then
-        -- 先尝试使用静态 Instance
-        if LocalizationManager.Instance then
-            manager = LocalizationManager.Instance
-        else
-            -- 如果 Instance 不存在，尝试通过 FindObjectOfType 查找
-            if Object and Object.FindObjectOfType and LocalizationManager then
-                -- 直接传递类，SLua 会自动处理类型转换
-                manager = Object.FindObjectOfType(LocalizationManager)
-                if manager then
-                    LocalizationManager.Instance = manager
-                end
-            end
-        end
-    end
+    local manager = GetLocalizationManager()
     
     -- 通过 C# LocalizationManager 加载语言
     if manager then
@@ -76,14 +86,10 @@ function I18n.LoadLanguage(langCode)
         I18n.currentLanguage = langCode
         -- 创建一个代理表，用于 I18n.Get 函数访问
         I18n.languages[langCode] = {}
-        if Debug and Debug.Log then
-            Debug.Log("[I18n] 语言已加载: " .. langCode)
-        end
+        Debug.Log("[I18n] 语言已加载: " .. langCode)
         return true
     else
-        if Debug and Debug.LogWarning then
-            Debug.LogWarning("[I18n] LocalizationManager 未找到，请确保场景中存在 LocalizationManager 组件")
-        end
+        Debug.LogWarning("[I18n] LocalizationManager 未找到，请确保场景中存在 LocalizationManager 组件")
         -- 尝试加载默认语言（使用 BCP 47 标准）
         if langCode ~= "zh-CN" then
             return I18n.LoadLanguage("zh-CN")
@@ -105,18 +111,14 @@ function I18n.Init()
         detectedLang = languageMap[systemLang]
     end
     
-    if Debug and Debug.Log then
-        Debug.Log("[I18n] 检测到系统语言: " .. tostring(systemLang) .. " -> " .. detectedLang)
-    end
+    Debug.Log("[I18n] 检测到系统语言: " .. tostring(systemLang) .. " -> " .. detectedLang)
     
     -- 尝试从PlayerPrefs读取用户设置的语言
     if UnityEngine and UnityEngine.PlayerPrefs then
         local savedLang = UnityEngine.PlayerPrefs.GetString("I18n_Language", "")
         if savedLang ~= "" and I18n.supportedLanguages[savedLang] then
             detectedLang = savedLang
-            if Debug and Debug.Log then
-                Debug.Log("[I18n] 使用用户设置的语言: " .. savedLang)
-            end
+            Debug.Log("[I18n] 使用用户设置的语言: " .. savedLang)
         end
     end
     
@@ -131,22 +133,7 @@ end
 -- @return 本地化后的文本
 function I18n.Get(key, ...)
     -- 尝试获取 LocalizationManager 实例
-    local manager = nil
-    if LocalizationManager then
-        -- 先尝试使用静态 Instance
-        if LocalizationManager.Instance then
-            manager = LocalizationManager.Instance
-        else
-            -- 如果 Instance 不存在，尝试通过 FindObjectOfType 查找
-            if Object and Object.FindObjectOfType and LocalizationManager then
-                -- 直接传递类，SLua 会自动处理类型转换
-                manager = Object.FindObjectOfType(LocalizationManager)
-                if manager then
-                    LocalizationManager.Instance = manager
-                end
-            end
-        end
-    end
+    local manager = GetLocalizationManager()
     
     -- 优先使用 C# LocalizationManager 获取文本
     if manager then
@@ -167,9 +154,7 @@ function I18n.Get(key, ...)
             end
             return text
         else
-            if Debug and Debug.LogWarning then
-                Debug.LogWarning("[I18n] 未找到文本键值: " .. key .. " (语言: " .. I18n.currentLanguage .. ")，LocalizationManager 可能未初始化")
-            end
+            Debug.LogWarning("[I18n] 未找到文本键值: " .. key .. " (语言: " .. I18n.currentLanguage .. ")，LocalizationManager 可能未初始化")
             return key  -- 返回键值本身作为后备
         end
     end
@@ -185,9 +170,7 @@ end
 -- @param langCode 语言代码（使用 BCP 47 标准，如 "zh-CN", "en-US"）
 function I18n.SetLanguage(langCode)
     if not I18n.supportedLanguages[langCode] then
-        if Debug and Debug.LogWarning then
-            Debug.LogWarning("[I18n] 不支持的语言代码: " .. langCode)
-        end
+        Debug.LogWarning("[I18n] 不支持的语言代码: " .. langCode)
         return false
     end
     
@@ -198,9 +181,7 @@ function I18n.SetLanguage(langCode)
             UnityEngine.PlayerPrefs.Save()
         end
         
-        if Debug and Debug.Log then
-            Debug.Log("[I18n] 语言已切换为: " .. langCode)
-        end
+        Debug.Log("[I18n] 语言已切换为: " .. langCode)
         return true
     end
     
@@ -302,11 +283,9 @@ function I18n.SetButtonText(button, key, childName, ...)
         textComp.text = text
         return true
     else
-        if Debug and Debug.LogWarning then
-            local msg = "[I18n] SetButtonText: 未找到文本组件 (Button: " .. 
-                       tostring(button.name) .. ", 子控件: " .. actualChildName .. ")"
-            Debug.LogWarning(msg)
-        end
+        local msg = "[I18n] SetButtonText: 未找到文本组件 (Button: " .. 
+                   tostring(button.name) .. ", 子控件: " .. actualChildName .. ")"
+        Debug.LogWarning(msg)
     end
     
     return false
