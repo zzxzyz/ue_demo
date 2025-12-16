@@ -24,9 +24,9 @@ public class LocalizationManager : MonoBehaviour
 {
     public static LocalizationManager Instance;
 
-    // 2. 在 Inspector 面板暴露这个变量，用于切换预览语言
+    // 2. 在 Inspector 面板暴露这个变量，用于切换预览语言（使用 BCP 47 标准：zh-CN, en-US）
     [Header("Editor Preview")]
-    public string previewLanguage = "cn"; 
+    public string previewLanguage = "zh-CN"; 
 
     private Dictionary<string, string> localizedText;
     private bool isReady = false;
@@ -48,29 +48,16 @@ public class LocalizationManager : MonoBehaviour
         }
     }
 
-    // 语言代码映射表：Lua 使用的语言代码 -> JSON 文件名
-    private static Dictionary<string, string> languageCodeMap = new Dictionary<string, string>
-    {
-        { "zh_CN", "cn" },
-        { "zh_TW", "zh_TW" },  // 如果需要繁体中文，需要创建对应的 JSON 文件
-        { "en_US", "en" },
-        { "ja_JP", "ja_JP" },   // 如果需要日文，需要创建对应的 JSON 文件
-        { "ko_KR", "ko_KR" },   // 如果需要韩文，需要创建对应的 JSON 文件
-        // 兼容旧的短代码格式
-        { "cn", "cn" },
-        { "en", "en" }
-    };
-
+    /// <summary>
+    /// 加载本地化文本（统一使用 BCP 47 标准语言代码，如：zh-CN, en-US）
+    /// Lua 和 Unity 使用相同的语言编码格式，无需映射转换
+    /// </summary>
+    /// <param name="langCode">BCP 47 标准语言代码（如：zh-CN, en-US, ja-JP, ko-KR）</param>
     public void LoadLocalizedText(string langCode)
     {
-        // 转换语言代码：zh_CN -> cn, en_US -> en
-        string jsonFileName = langCode;
-        if (languageCodeMap.ContainsKey(langCode))
-        {
-            jsonFileName = languageCodeMap[langCode];
-        }
-        
-        string filePath = Path.Combine(Application.streamingAssetsPath, jsonFileName + ".json");
+        // 直接使用 BCP 47 标准格式作为文件名，无需映射
+        // JSON 文件名格式：zh-CN.json, en-US.json 等
+        string filePath = Path.Combine(Application.streamingAssetsPath, langCode + ".json");
 
         if (File.Exists(filePath))
         {

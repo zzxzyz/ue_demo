@@ -320,7 +320,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f606054c6c802841a17d42cd7d2c5cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  previewLanguage: cn
+  previewLanguage: zh-CN
 --- !u!4 &500001612
 Transform:
   m_ObjectHideFlags: 0

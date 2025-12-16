@@ -8,40 +8,41 @@
 
 local I18n = {}
 
--- 当前语言代码（默认：zh_CN）
-I18n.currentLanguage = "zh_CN"
+-- 当前语言代码（默认：zh-CN，使用 BCP 47 标准）
+I18n.currentLanguage = "zh-CN"
 
 -- 语言数据表
 I18n.languages = {}
 
--- 支持的语言列表
+-- 支持的语言列表（使用 BCP 47 标准格式）
 I18n.supportedLanguages = {
-    zh_CN = "简体中文",
-    zh_TW = "繁体中文",
-    en_US = "English",
-    ja_JP = "日本語",
-    ko_KR = "한국어"
+    ["zh-CN"] = "简体中文",
+    ["zh-TW"] = "繁体中文",
+    ["en-US"] = "English (US)",
+    ["en-GB"] = "English (UK)",
+    ["ja-JP"] = "日本語",
+    ["ko-KR"] = "한국어"
 }
 
 -- ========== 语言映射表 ==========
--- 将Unity的SystemLanguage映射到我们的语言代码
+-- 将Unity的SystemLanguage映射到 BCP 47 标准语言代码
 -- 注意：如果 UnityEngine 未定义，使用数字常量作为后备
 local languageMap = {}
 if UnityEngine and UnityEngine.SystemLanguage then
-    languageMap[UnityEngine.SystemLanguage.Chinese] = "zh_CN"
-    languageMap[UnityEngine.SystemLanguage.ChineseSimplified] = "zh_CN"
-    languageMap[UnityEngine.SystemLanguage.ChineseTraditional] = "zh_TW"
-    languageMap[UnityEngine.SystemLanguage.English] = "en_US"
-    languageMap[UnityEngine.SystemLanguage.Japanese] = "ja_JP"
-    languageMap[UnityEngine.SystemLanguage.Korean] = "ko_KR"
+    languageMap[UnityEngine.SystemLanguage.Chinese] = "zh-CN"
+    languageMap[UnityEngine.SystemLanguage.ChineseSimplified] = "zh-CN"
+    languageMap[UnityEngine.SystemLanguage.ChineseTraditional] = "zh-TW"
+    languageMap[UnityEngine.SystemLanguage.English] = "en-US"
+    languageMap[UnityEngine.SystemLanguage.Japanese] = "ja-JP"
+    languageMap[UnityEngine.SystemLanguage.Korean] = "ko-KR"
 else
     -- 使用数字常量作为后备（Unity SystemLanguage 枚举值）
-    languageMap[6] = "zh_CN"   -- Chinese
-    languageMap[40] = "zh_CN"  -- ChineseSimplified
-    languageMap[41] = "zh_TW"  -- ChineseTraditional
-    languageMap[10] = "en_US"  -- English
-    languageMap[22] = "ja_JP"  -- Japanese
-    languageMap[23] = "ko_KR"  -- Korean
+    languageMap[6] = "zh-CN"   -- Chinese
+    languageMap[40] = "zh-CN"  -- ChineseSimplified
+    languageMap[41] = "zh-TW"  -- ChineseTraditional
+    languageMap[10] = "en-US"  -- English
+    languageMap[22] = "ja-JP"  -- Japanese
+    languageMap[23] = "ko-KR"  -- Korean
 end
 
 -- ========== 初始化函数 ==========
@@ -83,9 +84,9 @@ function I18n.LoadLanguage(langCode)
         if Debug and Debug.LogWarning then
             Debug.LogWarning("[I18n] LocalizationManager 未找到，请确保场景中存在 LocalizationManager 组件")
         end
-        -- 尝试加载默认语言
-        if langCode ~= "zh_CN" then
-            return I18n.LoadLanguage("zh_CN")
+        -- 尝试加载默认语言（使用 BCP 47 标准）
+        if langCode ~= "zh-CN" then
+            return I18n.LoadLanguage("zh-CN")
         end
         return false
     end
@@ -99,7 +100,7 @@ function I18n.Init()
         systemLang = UnityEngine.Application.systemLanguage
     end
     
-    local detectedLang = "zh_CN"
+    local detectedLang = "zh-CN"  -- 默认使用 BCP 47 标准格式
     if systemLang and languageMap[systemLang] then
         detectedLang = languageMap[systemLang]
     end
@@ -181,7 +182,7 @@ end
 
 -- ========== 语言切换 ==========
 -- 切换语言
--- @param langCode 语言代码（如 "zh_CN", "en_US"）
+-- @param langCode 语言代码（使用 BCP 47 标准，如 "zh-CN", "en-US"）
 function I18n.SetLanguage(langCode)
     if not I18n.supportedLanguages[langCode] then
         if Debug and Debug.LogWarning then
