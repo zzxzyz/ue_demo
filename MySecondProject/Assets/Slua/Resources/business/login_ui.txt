@@ -48,6 +48,7 @@ local usernameText = nil
 local passwordText = nil
 local loginButton = nil
 local cancelButton = nil
+local settingsButton = nil
 local titleText = nil
 local loginPanel = nil
 
@@ -156,6 +157,21 @@ local function InitUIComponents()
         cancelButton = cancelButtonGO:GetComponent("Button")
     end
     
+    -- 查找设置按钮
+    local settingsButtonGO = GameObject.Find("LoginPanel/SettingsButton")
+    if not settingsButtonGO then
+        settingsButtonGO = GameObject.Find("SettingsButton")
+    end
+    if not settingsButtonGO and loginPanel then
+        local child = loginPanel.transform:Find("SettingsButton")
+        if child then
+            settingsButtonGO = child.gameObject
+        end
+    end
+    if settingsButtonGO then
+        settingsButton = settingsButtonGO:GetComponent("Button")
+    end
+    
     -- 查找标题文本（支持多种可能的名称）
     local titleGO = GameObject.Find("LoginPanel/TitleText")
     if not titleGO then
@@ -219,6 +235,9 @@ local function InitUIComponents()
     end
     if not cancelButton then
         Debug.LogWarning("未找到取消按钮 (CancelButton with Button)")
+    end
+    if not settingsButton then
+        Debug.LogWarning("未找到设置按钮 (SettingsButton with Button)")
     end
     if not titleText then
         Debug.LogWarning("未找到标题文本 (TitleText with TextMeshProUGUI)")
@@ -423,6 +442,31 @@ local function OnCancelButtonClicked()
     end
 end
 
+-- 设置按钮点击处理函数
+local function OnSettingsButtonClicked()
+    Debug.Log("[Lua] 点击了设置按钮")
+    
+    -- 打开登录面板
+    -- 优先通过 UIManager 打开（如果使用跨场景 UI）
+    local uiManager = GameObject.Find("UIManager")
+    if uiManager then
+        local manager = uiManager:GetComponent("UIManager")
+        if manager then
+            manager:ShowLoginPanel()
+            Debug.Log("[Lua] 通过 UIManager 打开登录面板")
+            return
+        end
+    end
+    
+    -- 如果 UIManager 不存在，直接显示 loginPanel
+    if loginPanel then
+        loginPanel:SetActive(true)
+        Debug.Log("[Lua] 直接显示登录面板")
+    else
+        Debug.LogWarning("[Lua] 无法打开登录面板：loginPanel为null！")
+    end
+end
+
 -- ========== 公开的配置和工具函数 ==========
 -- 设置登录方式（同步或异步）
 -- @param useAsync true=异步登录, false=同步登录
@@ -523,6 +567,12 @@ function LoginManager.Start()
             Debug.Log("取消按钮点击事件已绑定")
         end
         
+        -- 给设置按钮添加点击事件
+        if settingsButton then
+            settingsButton.onClick:AddListener(OnSettingsButtonClicked)
+            Debug.Log("设置按钮点击事件已绑定")
+        end
+        
         -- 尝试注册回调函数到C#（如果C#桥接已初始化）
         if CSharpBridge and CSharpBridge.Bridge then
             LoginManager.RegisterCallbacksToCSharp()
@@ -552,12 +602,16 @@ function LoginManager.OnDestroy()
     if cancelButton then
         cancelButton.onClick:RemoveAllListeners()
     end
+    if settingsButton then
+        settingsButton.onClick:RemoveAllListeners()
+    end
     
     -- 清空引用
     usernameInput = nil
     passwordInput = nil
     loginButton = nil
     cancelButton = nil
+    settingsButton = nil
     titleText = nil
     loginPanel = nil
 end

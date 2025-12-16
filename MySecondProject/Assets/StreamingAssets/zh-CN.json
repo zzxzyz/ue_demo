@@ -30,6 +30,7 @@
         { "key": "debug_login_mode_sync", "value": "同步" },
         { "key": "debug_login_mode_set", "value": "登录模式已设置为: " },
         { "key": "debug_login_interface_loaded", "value": "登录界面已加载" },
+        { "key": "app_settings", "value": "设置" },
         { "key": "debug_login_interface_hidden", "value": "登录界面已隐藏" }
     ]
 }

@@ -30,6 +30,7 @@
         { "key": "debug_login_mode_sync", "value": "Sync" },
         { "key": "debug_login_mode_set", "value": "Login mode set to: " },
         { "key": "debug_login_interface_loaded", "value": "Login interface loaded" },
+        { "key": "app_settings", "value": "settings" },
         { "key": "debug_login_interface_hidden", "value": "Login interface hidden" }
     ]
 }
