@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
-[RequireComponent(typeof(Text))]
 [ExecuteInEditMode] // 1. 允许在编辑器模式运行
 public class LocalizedText : MonoBehaviour
 {
@@ -29,10 +29,35 @@ public class LocalizedText : MonoBehaviour
 
         if (LocalizationManager.Instance != null)
         {
-            Text textComponent = GetComponent<Text>();
-            // 获取文本并赋值
+            // 获取文本值
             string value = LocalizationManager.Instance.GetLocalizedValue(key);
-            textComponent.text = value;
+            
+            // 优先尝试 TextMeshProUGUI（UI Canvas 用）
+            TextMeshProUGUI tmpText = GetComponent<TextMeshProUGUI>();
+            if (tmpText != null)
+            {
+                tmpText.text = value;
+                return;
+            }
+            
+            // 尝试 TextMeshPro（3D 世界空间用）
+            TextMeshPro tmpText3D = GetComponent<TextMeshPro>();
+            if (tmpText3D != null)
+            {
+                tmpText3D.text = value;
+                return;
+            }
+            
+            // 最后尝试传统的 Text 组件
+            Text textComponent = GetComponent<Text>();
+            if (textComponent != null)
+            {
+                textComponent.text = value;
+                return;
+            }
+            
+            // 如果都没有找到，输出警告
+            Debug.LogWarning($"LocalizedText on {gameObject.name} 未找到 Text、TextMeshProUGUI 或 TextMeshPro 组件！", this);
         }
     }
 }
