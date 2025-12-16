@@ -483,6 +483,23 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 7098592591081788758, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 08bb5d5e2a4747b4bb7d309a8c817697,
+        type: 2}
+    - target: {fileID: 7098592591081788758, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 21956315060381530, guid: 08bb5d5e2a4747b4bb7d309a8c817697,
+        type: 2}
+    - target: {fileID: 7098592591081788758, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_firstOverflowCharacterIndex
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7098592591275369439, guid: db8fd86c540d9c4459915eb06247081e,
         type: 3}
       propertyPath: m_AnchorMin.y
@@ -562,6 +579,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7098592591391998205, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_Name
+      value: PasswordText
       objectReference: {fileID: 0}
     - target: {fileID: 7098592591391998207, guid: db8fd86c540d9c4459915eb06247081e,
         type: 3}
@@ -941,6 +963,23 @@ PrefabInstance:
     - target: {fileID: 7098592592977073751, guid: db8fd86c540d9c4459915eb06247081e,
         type: 3}
       propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7098592593057957182, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 08bb5d5e2a4747b4bb7d309a8c817697,
+        type: 2}
+    - target: {fileID: 7098592593057957182, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 21956315060381530, guid: 08bb5d5e2a4747b4bb7d309a8c817697,
+        type: 2}
+    - target: {fileID: 7098592593057957182, guid: db8fd86c540d9c4459915eb06247081e,
+        type: 3}
+      propertyPath: m_firstOverflowCharacterIndex
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
