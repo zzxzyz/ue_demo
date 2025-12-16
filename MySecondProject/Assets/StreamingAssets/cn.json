@@ -1,0 +1,6 @@
+{
+    "items": [
+        { "key": "main_menu_start", "value": "开始游戏" },
+        { "key": "main_menu_quit", "value": "退出" }
+    ]
+}
