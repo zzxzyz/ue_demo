@@ -17,9 +17,9 @@ if luaPandaEnabled then
     local ok, luaPanda = pcall(function() return require("LuaPanda") end)
     if ok and luaPanda then
         luaPanda.start("127.0.0.1", 8818)
-        Debug.Log("LuaPanda 调试器已启动")
+        Debug.Log("[LoginManager] LuaPanda 调试器已启动")
     else
-        Debug.Log("LuaPanda 调试器未找到，跳过调试器初始化")
+        Debug.LogWarning("[LoginManager] LuaPanda 调试器未找到，跳过调试器初始化")
     end
 else
     Debug.Log("LuaPanda 调试器未启用（请在Unity Editor菜单：选项/LuaPanda 中启用）")
@@ -83,7 +83,7 @@ local function InitUIComponents()
         if manager then
             loginPanel = manager:GetUI("LoginPanel")
             if loginPanel then
-                Debug.Log("从 UIManager 获取到 LoginPanel: " .. loginPanel.name)
+                Debug.Log("[LoginManager] 从 UIManager 获取到 LoginPanel")
             end
         end
     end
@@ -92,12 +92,12 @@ local function InitUIComponents()
     if not loginPanel then
         loginPanel = GameObject.Find("LoginPanel")
         if loginPanel then
-            Debug.Log("在场景中找到 LoginPanel: " .. loginPanel.name)
+            Debug.Log("[LoginManager] 在场景中找到 LoginPanel")
         end
     end
     
     if not loginPanel then
-        Debug.LogWarning("未找到LoginPanel，请确保 UIManager 已初始化或场景中存在名为'LoginPanel'的GameObject！")
+        Debug.LogError("[LoginManager] 未找到 LoginPanel，请确保 UIManager 已初始化或场景中存在名为'LoginPanel'的GameObject")
         return false
     end
     
@@ -224,29 +224,18 @@ local function InitUIComponents()
     end
     
     -- 验证所有组件是否找到
-    if not usernameInput then
-        Debug.LogWarning("未找到用户名输入框 (UsernameInput with TMP_InputField)")
-    end
-    if not passwordInput then
-        Debug.LogWarning("未找到密码输入框 (PasswordInput with TMP_InputField)")
-    end
-    if not loginButton then
-        Debug.LogWarning("未找到登录按钮 (LoginButton with Button)")
-    end
-    if not cancelButton then
-        Debug.LogWarning("未找到取消按钮 (CancelButton with Button)")
-    end
-    if not settingsButton then
-        Debug.LogWarning("未找到设置按钮 (SettingsButton with Button)")
-    end
-    if not titleText then
-        Debug.LogWarning("未找到标题文本 (TitleText with TextMeshProUGUI)")
-    end
-    if not usernameText then
-        Debug.LogWarning("未找到用户名标签文本 (UsernameText with TextMeshProUGUI)")
-    end
-    if not passwordText then
-        Debug.LogWarning("未找到密码标签文本 (PasswordText with TextMeshProUGUI)")
+    local missingComponents = {}
+    if not usernameInput then table.insert(missingComponents, "UsernameInput") end
+    if not passwordInput then table.insert(missingComponents, "PasswordInput") end
+    if not loginButton then table.insert(missingComponents, "LoginButton") end
+    if not cancelButton then table.insert(missingComponents, "CancelButton") end
+    if not settingsButton then table.insert(missingComponents, "SettingsButton") end
+    if not titleText then table.insert(missingComponents, "TitleText") end
+    if not usernameText then table.insert(missingComponents, "UsernameText") end
+    if not passwordText then table.insert(missingComponents, "PasswordText") end
+    
+    if #missingComponents > 0 then
+        Debug.LogWarning("[LoginManager] 缺少以下UI组件: " .. table.concat(missingComponents, ", "))
     end
     
     -- 注意：UI多语言文本已在编辑器中通过 LocalizedText 组件设置，无需在此初始化
@@ -265,11 +254,10 @@ local function HideLoginPanelAfterDelay(delay)
         end
         
         if loginPanel then
-            Debug.Log("正在隐藏登录界面: " .. loginPanel.name)
             loginPanel:SetActive(false)
-            Debug.Log(I18n.Get("debug_login_interface_hidden"))
+            Debug.Log("[LoginManager] 登录界面已隐藏")
         else
-            Debug.LogError("无法隐藏登录界面：loginPanel为null！")
+            Debug.LogError("[LoginManager] 无法隐藏登录界面：loginPanel 为 null")
         end
     end)
     coroutine.resume(co)
@@ -303,29 +291,29 @@ end
 -- ========== 登录逻辑函数 ==========
 -- 同步登录：直接调用C#的同步验证函数
 local function LoginSync(username, password)
-    Debug.Log("[Lua] " .. I18n.Get("debug_login_mode_sync"))
+    Debug.Log("[LoginManager] 使用同步登录模式，用户: " .. username)
     
     if not CSharpBridge or not CSharpBridge.LoginService then
-        Debug.LogWarning("[Lua] CSharpBridge未初始化，回退到简单验证")
+        Debug.LogWarning("[LoginManager] CSharpBridge 未初始化，回退到简单验证")
         return LoginSimple(username, password)
     end
     
-    Debug.Log("[Lua] 调用 C# LoginService.ValidateLogin")
     local isValid = CSharpBridge.LoginService:ValidateLogin(username, password)
     
     if isValid then
         -- 调用C#函数获取用户信息
         local userInfo = CSharpBridge.LoginService:GetUserInfo(username)
-        Debug.Log("[Lua] 用户信息: " .. userInfo)
+        if userInfo then
+            Debug.Log("[LoginManager] 登录成功，用户信息: " .. userInfo)
+        end
         
         -- 调用C#函数保存登录状态
         CSharpBridge.LoginService:SaveLoginState(username)
         
-        Debug.Log("[Lua] " .. I18n.Get("login_success"))
         ShowLoginSuccess()
         return true
     else
-        Debug.LogError("[Lua] 登录验证失败")
+        Debug.LogWarning("[LoginManager] 登录验证失败，用户名或密码错误")
         ShowLoginFailed(I18n.Get("login_error_username_or_password"))
         return false
     end
@@ -333,15 +321,15 @@ end
 
 -- 异步登录：调用C#的异步登录函数，使用回调处理结果
 local function LoginAsync(username, password)
-    Debug.Log("[Lua] 使用异步登录方式")
+    Debug.Log("[LoginManager] 使用异步登录模式，用户: " .. username)
     if not CSharpBridge or not CSharpBridge.LoginService then
-        Debug.LogWarning("[Lua] CSharpBridge未初始化，回退到简单验证")
+        Debug.LogWarning("[LoginManager] CSharpBridge 未初始化，回退到简单验证")
         return LoginSimple(username, password)
     end
 
     -- 定义Lua回调函数
     local function onLoginSuccess(user, msg)
-        Debug.Log("[Lua] 异步登录成功回调: " .. user .. ", " .. msg)
+        Debug.Log("[LoginManager] 异步登录成功，用户: " .. user .. (msg and (", " .. msg) or ""))
 
         -- 保存登录状态
         CSharpBridge.LoginService:SaveLoginState(user)
@@ -351,7 +339,7 @@ local function LoginAsync(username, password)
     end
     
     local function onLoginFailed(errorMsg)
-        Debug.LogError("[Lua] 异步登录失败回调: " .. errorMsg)
+        Debug.LogWarning("[LoginManager] 异步登录失败: " .. (errorMsg or "未知错误"))
         ShowLoginFailed(errorMsg)
     end
     
@@ -362,14 +350,14 @@ end
 
 -- 简单验证：向后兼容的简单验证逻辑（不依赖C#）
 local function LoginSimple(username, password)
-    Debug.LogWarning("[Lua] 使用简单验证逻辑（向后兼容）")
+    Debug.LogWarning("[LoginManager] 使用简单验证逻辑（向后兼容模式）")
     
     if username == "admin" and password == "123456" then
-        Debug.Log(I18n.Get("login_success"))
+        Debug.Log("[LoginManager] 简单验证成功")
         ShowLoginSuccess()
         return true
     else
-        Debug.LogError(I18n.Get("login_error_username_or_password"))
+        Debug.LogWarning("[LoginManager] 简单验证失败，用户名或密码错误")
         ShowLoginFailed()
         return false
     end
@@ -379,26 +367,24 @@ end
 -- 这个函数展示了如何从Lua调用C#的函数
 local function OnLoginButtonClicked()
     if not usernameInput or not passwordInput or not titleText then
-        Debug.LogError(I18n.Get("login_error_ui_not_ready"))
+        Debug.LogError("[LoginManager] UI 组件未就绪，无法执行登录")
         return
     end
     
     local username = usernameInput.text
     local password = passwordInput.text
     
-    Debug.Log(I18n.Get("debug_login_button_clicked") .. " from lua")
-    Debug.Log(I18n.Get("debug_username") .. username)
-    Debug.Log(I18n.Get("debug_password") .. password)
+    Debug.Log("[LoginManager] 登录按钮被点击，用户: " .. username)
     
     -- 简单的验证逻辑
     if not username or username == "" then
-        Debug.LogWarning(I18n.Get("login_error_username_empty"))
+        Debug.LogWarning("[LoginManager] 登录失败：用户名为空")
         titleText.text = I18n.Get("login_error_username_empty")
         return
     end
     
     if not password or password == "" then
-        Debug.LogWarning(I18n.Get("login_error_password_empty"))
+        Debug.LogWarning("[LoginManager] 登录失败：密码为空")
         titleText.text = I18n.Get("login_error_password_empty")
         return
     end
@@ -415,14 +401,13 @@ end
 
 -- 取消按钮点击处理函数
 local function OnCancelButtonClicked()
-    Debug.Log("[Lua] 点击了取消按钮")
+    Debug.Log("[LoginManager] 取消按钮被点击")
     
     -- 隐藏登录界面
     if loginPanel then
         loginPanel:SetActive(false)
-        Debug.Log("[Lua] 登录界面已隐藏（取消操作）")
     else
-        Debug.LogWarning("[Lua] 无法隐藏登录界面：loginPanel为null！")
+        Debug.LogWarning("[LoginManager] 无法隐藏登录界面：loginPanel 为 null")
     end
     
     -- 清空输入框
@@ -444,7 +429,7 @@ end
 
 -- 设置按钮点击处理函数
 local function OnSettingsButtonClicked()
-    Debug.Log("[Lua] 点击了设置按钮")
+    Debug.Log("[LoginManager] 设置按钮被点击")
     
     -- 打开登录面板
     -- 优先通过 UIManager 打开（如果使用跨场景 UI）
@@ -453,7 +438,6 @@ local function OnSettingsButtonClicked()
         local manager = uiManager:GetComponent("UIManager")
         if manager then
             manager:ShowLoginPanel()
-            Debug.Log("[Lua] 通过 UIManager 打开登录面板")
             return
         end
     end
@@ -461,9 +445,8 @@ local function OnSettingsButtonClicked()
     -- 如果 UIManager 不存在，直接显示 loginPanel
     if loginPanel then
         loginPanel:SetActive(true)
-        Debug.Log("[Lua] 直接显示登录面板")
     else
-        Debug.LogWarning("[Lua] 无法打开登录面板：loginPanel为null！")
+        Debug.LogWarning("[LoginManager] 无法打开登录面板：loginPanel 为 null")
     end
 end
 
@@ -472,8 +455,8 @@ end
 -- @param useAsync true=异步登录, false=同步登录
 function LoginManager.SetLoginMode(useAsync)
     LoginManager.UseAsyncLogin = useAsync
-    local modeText = useAsync and I18n.Get("debug_login_mode_async") or I18n.Get("debug_login_mode_sync")
-    Debug.Log("[Lua] " .. I18n.Get("debug_login_mode_set") .. modeText)
+    local modeText = useAsync and "异步" or "同步"
+    Debug.Log("[LoginManager] 登录模式已设置为: " .. modeText)
 end
 
 -- 获取当前登录方式
@@ -488,9 +471,10 @@ end
 function LoginManager.SetLanguage(langCode)
     if I18n.SetLanguage(langCode) then
         -- LocalizedText 组件会自动更新，无需手动刷新
-        Debug.Log("[Lua] 语言已切换为: " .. langCode)
+        Debug.Log("[LoginManager] 语言已切换为: " .. langCode)
         return true
     end
+    Debug.LogWarning("[LoginManager] 语言切换失败: " .. langCode)
     return false
 end
 
@@ -502,7 +486,7 @@ end
 -- ========== 供C#调用的Lua函数 ==========
 -- 这个函数可以从C#中调用，例如：LoginBridge.CallLuaLoginFunction(username, password)
 function LoginManager.LoginFromCSharp(username, password)
-    Debug.Log("[Lua] 收到来自C#的登录请求: " .. username)
+    Debug.Log("[LoginManager] 收到来自 C# 的登录请求，用户: " .. username)
     
     -- 可以在这里处理来自C#的登录请求
     if usernameInput and passwordInput then
@@ -519,7 +503,7 @@ function LoginManager.RegisterCallbacksToCSharp()
     if CSharpBridge and CSharpBridge.Bridge then
         -- 定义Lua回调函数
         local function onLoginSuccess(user, msg)
-            Debug.Log("[Lua] 登录成功回调: " .. user .. ", " .. msg)
+            Debug.Log("[LoginManager] 登录成功回调，用户: " .. user .. (msg and (", " .. msg) or ""))
             if titleText then
                 titleText.text = I18n.Get("login_success") .. " " .. (msg or "")
                 titleText.color = Color.green
@@ -527,7 +511,7 @@ function LoginManager.RegisterCallbacksToCSharp()
         end
         
         local function onLoginFailed(errorMsg)
-            Debug.LogError("[Lua] 登录失败回调: " .. errorMsg)
+            Debug.LogWarning("[LoginManager] 登录失败回调: " .. (errorMsg or "未知错误"))
             if titleText then
                 titleText.text = I18n.Get("login_failed") .. " " .. (errorMsg or "")
                 titleText.color = Color.red
@@ -535,14 +519,18 @@ function LoginManager.RegisterCallbacksToCSharp()
         end
         
         local function onLoginComplete(success, msg)
-            Debug.Log("[Lua] 登录完成回调: success=" .. tostring(success) .. ", msg=" .. msg)
+            if success then
+                Debug.Log("[LoginManager] 登录完成，成功")
+            else
+                Debug.LogWarning("[LoginManager] 登录完成，失败: " .. (msg or ""))
+            end
         end
         
         -- 注册到C#的LoginBridge
         CSharpBridge.Bridge:RegisterLuaLoginCallbacks(onLoginSuccess, onLoginFailed, onLoginComplete)
-        Debug.Log("[Lua] 回调函数已注册到C#")
+        Debug.Log("[LoginManager] 回调函数已注册到 C#")
     else
-        Debug.LogWarning("[Lua] CSharpBridge未初始化，无法注册回调")
+        Debug.LogWarning("[LoginManager] CSharpBridge 未初始化，无法注册回调")
     end
 end
 
@@ -583,13 +571,13 @@ function LoginManager.Start()
             local lastUser = CSharpBridge.LoginService:GetLastLoginUser()
             if lastUser and lastUser ~= "" and usernameInput then
                 usernameInput.text = lastUser
-                Debug.Log("[Lua] 已填充上次登录的用户名: " .. lastUser)
+                Debug.Log("[LoginManager] 已填充上次登录的用户名: " .. lastUser)
             end
         end
         
-        Debug.Log(I18n.Get("debug_login_interface_loaded"))
+        Debug.Log("[LoginManager] 初始化完成，登录界面已加载")
     else
-        Debug.LogError("LoginManager 初始化失败：无法找到必要的UI组件")
+        Debug.LogError("[LoginManager] 初始化失败：无法找到必要的UI组件")
     end
 end
 
