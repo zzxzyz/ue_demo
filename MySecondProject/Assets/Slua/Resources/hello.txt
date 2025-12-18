@@ -1,2 +1,5 @@
+local I18n = require("i18n")
+
 print('hello this is in lua')
+print(I18n.Get('hello_world'))
 
