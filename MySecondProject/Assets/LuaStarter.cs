@@ -17,6 +17,8 @@ public class LuaStarter : MonoBehaviour
             
             // 初始化slua，使用基本模式 + 扩展库（包含 socket）
             luaSvr.init(null, OnLuaInitComplete, LuaSvrFlag.LSF_BASIC | LuaSvrFlag.LSF_EXTLIB);
+
+            Debug.LogWarning($"current screen mode is {Screen.fullScreenMode}");
         }
         catch (System.Exception e)
         {
