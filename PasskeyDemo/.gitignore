@@ -1,1 +1,22 @@
-.vs/*
+# Visual Studio 配置
+.vs/
+
+# 构建输出目录
+x64/
+Debug/
+Release/
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.res
+*.log
+
+# 编译中间文件
+*.tlog
+*.lastbuildstate
+*.idb
+*.recipe
+
+# 用户特定设置
+*.user
