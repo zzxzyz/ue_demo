@@ -5,6 +5,10 @@
 #include "HAL/PlatformFileManager.h"
 #include "GenericPlatform/GenericPlatformFile.h"
 #include "Misc/FileHelper.h"
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
+#include "Framework/Application/SlateApplication.h"
+#include "GameFramework/GameUserSettings.h"
 
 
 // read file content
@@ -85,9 +89,100 @@ void UMyGameInstance::CloseLuaState()
 	
 }
 
+// 获取窗口模式的字符串描述
+static FString GetWindowModeString(EWindowMode::Type WindowMode)
+{
+	switch (WindowMode)
+	{
+	case EWindowMode::Fullscreen:
+		return TEXT("全屏模式 (Fullscreen)");
+	case EWindowMode::WindowedFullscreen:
+		return TEXT("无边框窗口化全屏 (WindowedFullscreen/Borderless)");
+	case EWindowMode::Windowed:
+		return TEXT("窗口模式 (Windowed)");
+	default:
+		return TEXT("未知模式 (Unknown)");
+	}
+}
+
+// 打印当前窗口显示模式（同时输出到日志和屏幕）
+static void PrintWindowMode()
+{
+	if (GEngine && GEngine->GameViewport)
+	{
+		// 屏幕显示的持续时间（秒）
+		const float DisplayTime = 10.0f;
+		// 屏幕显示的颜色
+		const FColor TitleColor = FColor::Yellow;
+		const FColor InfoColor = FColor::Green;
+		
+		int32 MsgKey = 100; // 消息的唯一标识，用于更新同一位置的消息
+		
+		// 方式1：从 GameUserSettings 获取
+		UGameUserSettings* UserSettings = GEngine->GetGameUserSettings();
+		if (UserSettings)
+		{
+			EWindowMode::Type WindowMode = UserSettings->GetFullscreenMode();
+			FIntPoint Resolution = UserSettings->GetScreenResolution();
+			
+			// 输出到日志
+			UE_LOG(LogTemp, Warning, TEXT("========== 窗口显示模式信息 =========="));
+			UE_LOG(LogTemp, Warning, TEXT("窗口模式: %s"), *GetWindowModeString(WindowMode));
+			UE_LOG(LogTemp, Warning, TEXT("分辨率: %d x %d"), Resolution.X, Resolution.Y);
+			UE_LOG(LogTemp, Warning, TEXT("是否使用 VSync: %s"), UserSettings->IsVSyncEnabled() ? TEXT("是") : TEXT("否"));
+			UE_LOG(LogTemp, Warning, TEXT("====================================="));
+			
+			// 输出到屏幕
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, TitleColor, TEXT("========== 窗口显示模式信息 =========="));
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("窗口模式: %s"), *GetWindowModeString(WindowMode)));
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("分辨率: %d x %d"), Resolution.X, Resolution.Y));
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("VSync: %s"), UserSettings->IsVSyncEnabled() ? TEXT("是") : TEXT("否")));
+		}
+		
+		// 方式2：从实际窗口获取
+		TSharedPtr<SWindow> GameWindow = GEngine->GameViewport->GetWindow();
+		if (GameWindow.IsValid())
+		{
+			EWindowMode::Type ActualMode = GameWindow->GetWindowMode();
+			FVector2D WindowSize = GameWindow->GetSizeInScreen();
+			FVector2D WindowPos = GameWindow->GetPositionInScreen();
+			
+			// 输出到日志
+			UE_LOG(LogTemp, Warning, TEXT("========== 实际窗口状态 =========="));
+			UE_LOG(LogTemp, Warning, TEXT("实际窗口模式: %s"), *GetWindowModeString(ActualMode));
+			UE_LOG(LogTemp, Warning, TEXT("窗口大小: %.0f x %.0f"), WindowSize.X, WindowSize.Y);
+			UE_LOG(LogTemp, Warning, TEXT("窗口位置: (%.0f, %.0f)"), WindowPos.X, WindowPos.Y);
+			UE_LOG(LogTemp, Warning, TEXT("窗口标题: %s"), *GameWindow->GetTitle().ToString());
+			UE_LOG(LogTemp, Warning, TEXT("=================================="));
+			
+			// 输出到屏幕
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, TitleColor, TEXT("========== 实际窗口状态 =========="));
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("实际窗口模式: %s"), *GetWindowModeString(ActualMode)));
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("窗口大小: %.0f x %.0f"), WindowSize.X, WindowSize.Y));
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("窗口位置: (%.0f, %.0f)"), WindowPos.X, WindowPos.Y));
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("窗口标题: %s"), *GameWindow->GetTitle().ToString()));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("无法获取窗口信息：GEngine 或 GameViewport 未初始化"));
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("无法获取窗口信息：GameViewport 未初始化"));
+		}
+	}
+}
+
 void UMyGameInstance::Init()
 {
 	Super::Init();
+	
+	// 延迟执行以确保窗口已创建
+	FTimerHandle TimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, []()
+	{
+		PrintWindowMode();
+	}, 1.0f, false);
 }
 
 void UMyGameInstance::Shutdown()
