@@ -32,12 +32,38 @@ bool MainWindow::Create(HINSTANCE hInstance, int nCmdShow)
     wcex.lpszClassName = L"PasskeyDemoMainWindow";
     wcex.hIconSm = LoadIcon(nullptr, IDI_APPLICATION);
 
-    if (!RegisterClassEx(&wcex))
+    // Unregister class first if it exists (for development/debugging)
+    UnregisterClass(L"PasskeyDemoMainWindow", hInstance);
+    
+    // Register window class
+    ATOM atom = RegisterClassEx(&wcex);
+    if (!atom)
     {
+        DWORD error = GetLastError();
+        // If error is not "already exists", it's a real failure
+        if (error != ERROR_CLASS_ALREADY_EXISTS)
+        {
+            return false;
+        }
+        // Verify the class actually exists
+        WNDCLASSEX wcTest = {};
+        if (!GetClassInfoEx(hInstance, L"PasskeyDemoMainWindow", &wcTest))
+        {
+            // Class doesn't actually exist
+            return false;
+        }
+    }
+    
+    // Verify class is registered before creating window
+    WNDCLASSEX wcVerify = {};
+    if (!GetClassInfoEx(hInstance, L"PasskeyDemoMainWindow", &wcVerify))
+    {
+        // Class registration failed
         return false;
     }
 
     // Create window
+    SetLastError(0); // Clear any previous error
     m_hWnd = CreateWindowEx(
         0,
         L"PasskeyDemoMainWindow",
@@ -53,11 +79,29 @@ bool MainWindow::Create(HINSTANCE hInstance, int nCmdShow)
 
     if (!m_hWnd)
     {
+        // GetLastError will be called in main.cpp
         return false;
     }
 
+    // Ensure window is shown (override nCmdShow if it's SW_HIDE)
+    if (nCmdShow == SW_HIDE)
+    {
+        nCmdShow = SW_SHOWNORMAL;
+    }
+    
     ShowWindow(m_hWnd, nCmdShow);
     UpdateWindow(m_hWnd);
+    
+    // Bring window to foreground (only if window is valid)
+    // Note: SetForegroundWindow may fail in some scenarios, but that's OK
+    if (IsWindow(m_hWnd))
+    {
+        // These calls may fail in some scenarios (e.g., if another window has focus)
+        // but that's not critical for window creation
+        SetForegroundWindow(m_hWnd);
+        // SetFocus may fail if window doesn't have input focus yet, that's OK
+        SetFocus(m_hWnd);
+    }
 
     return true;
 }
@@ -71,6 +115,11 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
         CREATESTRUCT* pCreate = (CREATESTRUCT*)lParam;
         pThis = (MainWindow*)pCreate->lpCreateParams;
         SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)pThis);
+        
+        // IMPORTANT: Set m_hWnd here, before any message handling
+        // This is because m_hWnd is not set until CreateWindowEx returns,
+        // but we need it during WM_NCCREATE and WM_CREATE processing
+        pThis->m_hWnd = hWnd;
     }
     else
     {
@@ -79,13 +128,13 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 
     if (pThis)
     {
-        return pThis->HandleMessage(uMsg, wParam, lParam);
+        return pThis->HandleMessage(hWnd, uMsg, wParam, lParam);
     }
 
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT MainWindow::HandleMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
     {
@@ -102,7 +151,7 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         return 0;
 
     default:
-        return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+        return DefWindowProc(hWnd, uMsg, wParam, lParam);
     }
 }
 

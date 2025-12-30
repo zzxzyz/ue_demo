@@ -1,4 +1,5 @@
 #include "resource.h"
 #include "windows.h"
 
-IDR_MAINFRAME ICON "app.ico"
+// Icon removed - using default application icon
+// IDR_MAINFRAME ICON "app.ico"

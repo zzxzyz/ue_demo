@@ -35,7 +35,7 @@ void PasskeyWindow::ShowModal(HINSTANCE hInstance, HWND hParent)
     wcex.hInstance = hInstance;
     wcex.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
     wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground = (HBRUSH)(COLOR_DIALOG + 1);
+    wcex.hbrBackground = (HBRUSH)(COLOR_3DFACE + 1);
     wcex.lpszMenuName = nullptr;
     wcex.lpszClassName = L"PasskeyDemoPasskeyWindow";
     wcex.hIconSm = LoadIcon(nullptr, IDI_APPLICATION);
@@ -98,6 +98,9 @@ LRESULT CALLBACK PasskeyWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
         CREATESTRUCT* pCreate = (CREATESTRUCT*)lParam;
         pThis = (PasskeyWindow*)pCreate->lpCreateParams;
         SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)pThis);
+        
+        // IMPORTANT: Set m_hWnd here, before any message handling
+        pThis->m_hWnd = hWnd;
     }
     else
     {
@@ -106,13 +109,13 @@ LRESULT CALLBACK PasskeyWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 
     if (pThis)
     {
-        return pThis->HandleMessage(uMsg, wParam, lParam);
+        return pThis->HandleMessage(hWnd, uMsg, wParam, lParam);
     }
 
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-LRESULT PasskeyWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT PasskeyWindow::HandleMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
     {
@@ -129,7 +132,7 @@ LRESULT PasskeyWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         return 0;
 
     default:
-        return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+        return DefWindowProc(hWnd, uMsg, wParam, lParam);
     }
 }
 
@@ -236,135 +239,145 @@ bool PasskeyWindow::PerformPasskeyAuthentication()
         return false;
     }
 
-    // Get function pointers
-    typedef HRESULT(WINAPI* PFN_WEBAUTHN_GET_API_VERSION)(DWORD*);
-    typedef HRESULT(WINAPI* PFN_WEBAUTHN_IS_USER_VERIFYING_PLATFORM_AUTHENTICATOR_AVAILABLE)(WEBAUTHN_AUTHENTICATOR_ATTACHMENT, BOOL*);
-    typedef HRESULT(WINAPI* PFN_WEBAUTHN_GET_ASSERTION)(HWND, PCWSTR, PCWEBAUTHN_CLIENT_DATA, PCWEBAUTHN_GET_ASSERTION_OPTIONS, PWEBAUTHN_ASSERTION*, DWORD*);
-    typedef VOID(WINAPI* PFN_WEBAUTHN_FREE_ASSERTION)(PWEBAUTHN_ASSERTION);
-
-    PFN_WEBAUTHN_GET_API_VERSION pfnGetApiVersion = 
-        (PFN_WEBAUTHN_GET_API_VERSION)GetProcAddress(hWebAuthn, "WebAuthNGetApiVersionNumber");
-    PFN_WEBAUTHN_IS_USER_VERIFYING_PLATFORM_AUTHENTICATOR_AVAILABLE pfnIsUVPAAvailable = 
-        (PFN_WEBAUTHN_IS_USER_VERIFYING_PLATFORM_AUTHENTICATOR_AVAILABLE)GetProcAddress(hWebAuthn, "WebAuthNIsUserVerifyingPlatformAuthenticatorAvailable");
-    PFN_WEBAUTHN_GET_ASSERTION pfnGetAssertion = 
-        (PFN_WEBAUTHN_GET_ASSERTION)GetProcAddress(hWebAuthn, "WebAuthNGetAssertion");
-    PFN_WEBAUTHN_FREE_ASSERTION pfnFreeAssertion = 
-        (PFN_WEBAUTHN_FREE_ASSERTION)GetProcAddress(hWebAuthn, "WebAuthNFreeAssertion");
-
-    if (!pfnGetApiVersion || !pfnIsUVPAAvailable || !pfnGetAssertion || !pfnFreeAssertion)
-    {
-        FreeLibrary(hWebAuthn);
-        UpdateStatus(L"WebAuthn API functions not available");
-        return false;
-    }
-
-    // Check API version
-    DWORD apiVersion = 0;
-    HRESULT hr = pfnGetApiVersion(&apiVersion);
-    if (FAILED(hr))
-    {
-        FreeLibrary(hWebAuthn);
-        UpdateStatus(L"Failed to get WebAuthn API version");
-        return false;
-    }
-
-    // Check if platform authenticator is available
-    BOOL isAvailable = FALSE;
-    hr = pfnIsUVPAAvailable(WEBAUTHN_AUTHENTICATOR_ATTACHMENT_ANY, &isAvailable);
-    if (FAILED(hr) || !isAvailable)
-    {
-        FreeLibrary(hWebAuthn);
-        UpdateStatus(L"Platform authenticator (Windows Hello) not available. Please set up Windows Hello.");
-        return false;
-    }
-
-    // Prepare WebAuthn GetAssertion options
-    // For demo, we use a simple RP ID (localhost for testing)
-    PCWSTR rpId = L"localhost";
-    
-    // Generate a simple challenge (in production, this should be cryptographically random)
-    BYTE challenge[32] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-                          0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
-                          0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
-                          0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20 };
-
-    // Set up client data JSON
-    std::wstring clientDataJson = L"{\"type\":\"webauthn.get\",\"challenge\":\"";
-    // Base64 encode challenge (simplified for demo - in production use proper base64)
-    const char base64Chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    for (int i = 0; i < 32; i += 3)
-    {
-        BYTE b1 = challenge[i];
-        BYTE b2 = (i + 1 < 32) ? challenge[i + 1] : 0;
-        BYTE b3 = (i + 2 < 32) ? challenge[i + 2] : 0;
-        clientDataJson += (wchar_t)base64Chars[(b1 >> 2) & 0x3F];
-        clientDataJson += (wchar_t)base64Chars[((b1 << 4) | (b2 >> 4)) & 0x3F];
-        if (i + 1 < 32)
-            clientDataJson += (wchar_t)base64Chars[((b2 << 2) | (b3 >> 6)) & 0x3F];
-        if (i + 2 < 32)
-            clientDataJson += (wchar_t)base64Chars[b3 & 0x3F];
-    }
-    clientDataJson += L"\",\"origin\":\"http://localhost\"}";
-
-    std::vector<BYTE> clientDataBytes;
-    for (wchar_t c : clientDataJson)
-    {
-        clientDataBytes.push_back((BYTE)(c & 0xFF));
-        clientDataBytes.push_back((BYTE)((c >> 8) & 0xFF));
-    }
-
-    WEBAUTHN_CLIENT_DATA clientData = {};
-    clientData.dwVersion = WEBAUTHN_CLIENT_DATA_CURRENT_VERSION;
-    clientData.cbClientDataJSON = (DWORD)clientDataBytes.size();
-    clientData.pbClientDataJSON = clientDataBytes.data();
-    clientData.pwszHashAlgId = WEBAUTHN_HASH_ALGORITHM_SHA_256;
-
-    WEBAUTHN_GET_ASSERTION_OPTIONS options = {};
-    options.dwVersion = WEBAUTHN_GET_ASSERTION_OPTIONS_CURRENT_VERSION;
-    options.dwTimeoutMs = 60000; // 60 seconds
-    options.CredentialList = { 0, nullptr }; // Empty credential list - allow any credential
-    options.Extensions = { 0, nullptr };
-    options.dwAuthenticatorAttachment = WEBAUTHN_AUTHENTICATOR_ATTACHMENT_ANY;
-    options.dwUserVerificationRequirement = WEBAUTHN_USER_VERIFICATION_REQUIREMENT_ANY;
-    options.dwFlags = 0;
-
-    // Call WebAuthNGetAssertion
-    PWEBAUTHN_ASSERTION pAssertion = nullptr;
-    DWORD dwUsedCredentialList = 0;
-
-    UpdateStatus(L"Waiting for user authentication (Windows Hello)...");
-
-    hr = pfnGetAssertion(
-        m_hWnd,
-        rpId,
-        &clientData,
-        &options,
-        &pAssertion,
-        &dwUsedCredentialList
+    // Define the MakeCredential function type to trigger Windows Hello UI
+    // This will show the Windows Hello prompt
+    typedef HRESULT(WINAPI* PFN_WEBAUTHN_MAKE_CREDENTIAL)(
+        HWND hWnd,
+        PCWSTR pwszRpId,
+        PCWSTR pwszRpName,
+        PCWSTR pwszUserName,
+        PCWSTR pwszUserDisplayName,
+        const BYTE* pbUserId,
+        DWORD cbUserId,
+        const BYTE* pbChallenge,
+        DWORD cbChallenge,
+        DWORD dwFlags,
+        PVOID* ppCredentialAttestation
     );
 
-    bool success = false;
-    if (SUCCEEDED(hr) && pAssertion)
+    // Use CredUI to show Windows Hello dialog directly
+    // This is a simpler approach - use Windows Security API
+    typedef HRESULT(WINAPI* PFN_WEBAUTHN_IS_UVPA_AVAILABLE)(BOOL*);
+    
+    PFN_WEBAUTHN_IS_UVPA_AVAILABLE pfnIsUVPAAvailable = 
+        (PFN_WEBAUTHN_IS_UVPA_AVAILABLE)GetProcAddress(hWebAuthn, "WebAuthNIsUserVerifyingPlatformAuthenticatorAvailable");
+
+    if (pfnIsUVPAAvailable)
     {
-        // Authentication succeeded
-        success = true;
-        pfnFreeAssertion(pAssertion);
-    }
-    else
-    {
-        // Authentication failed or was cancelled
-        if (hr == HRESULT_FROM_WIN32(ERROR_CANCELLED))
+        BOOL isAvailable = FALSE;
+        HRESULT hr = pfnIsUVPAAvailable(&isAvailable);
+        if (FAILED(hr) || !isAvailable)
         {
-            UpdateStatus(L"Authentication cancelled by user");
-        }
-        else
-        {
-            std::wstringstream ss;
-            ss << L"Authentication failed (Error: 0x" << std::hex << hr << L")";
-            UpdateStatus(ss.str());
+            FreeLibrary(hWebAuthn);
+            UpdateStatus(L"Windows Hello not available");
+            return false;
         }
     }
 
     FreeLibrary(hWebAuthn);
-    return success;
+
+    // Use Windows Credential UI to show Windows Hello prompt
+    // This is a simpler way to trigger the Windows Hello UI
+    HMODULE hCredUI = LoadLibrary(L"credui.dll");
+    if (!hCredUI)
+    {
+        UpdateStatus(L"CredUI not available");
+        return false;
+    }
+
+    // Use CredUIPromptForWindowsCredentialsW to show the Windows Hello dialog
+    typedef DWORD(WINAPI* PFN_CRED_UI_PROMPT_FOR_WINDOWS_CREDENTIALS)(
+        PVOID pUiInfo,
+        DWORD dwAuthError,
+        PULONG pulAuthPackage,
+        LPCVOID pvInAuthBuffer,
+        ULONG ulInAuthBufferSize,
+        LPVOID* ppvOutAuthBuffer,
+        PULONG pulOutAuthBufferSize,
+        PBOOL pfSave,
+        DWORD dwFlags
+    );
+
+    PFN_CRED_UI_PROMPT_FOR_WINDOWS_CREDENTIALS pfnCredUIPrompt = 
+        (PFN_CRED_UI_PROMPT_FOR_WINDOWS_CREDENTIALS)GetProcAddress(hCredUI, "CredUIPromptForWindowsCredentialsW");
+
+    if (!pfnCredUIPrompt)
+    {
+        FreeLibrary(hCredUI);
+        UpdateStatus(L"CredUI function not available");
+        return false;
+    }
+
+    // Set up CREDUI_INFO structure
+    struct CREDUI_INFOW {
+        DWORD cbSize;
+        HWND hwndParent;
+        LPCWSTR pszMessageText;
+        LPCWSTR pszCaptionText;
+        HBITMAP hbmBanner;
+    };
+
+    CREDUI_INFOW credInfo = {};
+    credInfo.cbSize = sizeof(CREDUI_INFOW);
+    credInfo.hwndParent = m_hWnd;
+    credInfo.pszMessageText = L"Please verify your identity using Windows Hello";
+    credInfo.pszCaptionText = L"Passkey Authentication";
+    credInfo.hbmBanner = nullptr;
+
+    ULONG authPackage = 0;
+    LPVOID outAuthBuffer = nullptr;
+    ULONG outAuthBufferSize = 0;
+    BOOL save = FALSE;
+
+    // CREDUIWIN_GENERIC = 0x1, CREDUIWIN_IN_CRED_ONLY = 0x20
+    // CREDUIWIN_ENUMERATE_ADMINS = 0x100
+    // Try with different flags to get Windows Hello
+    #define CREDUIWIN_GENERIC 0x1
+    #define CREDUIWIN_CHECKBOX 0x2
+    #define CREDUIWIN_AUTHPACKAGE_ONLY 0x10
+    #define CREDUIWIN_IN_CRED_ONLY 0x20
+    #define CREDUIWIN_ENUMERATE_CURRENT_USER 0x200
+    #define CREDUIWIN_SECURE_PROMPT 0x1000
+    #define CREDUIWIN_PREPROMPTING 0x2000
+    #define CREDUIWIN_PACK_32_WOW 0x10000000
+
+    UpdateStatus(L"Opening Windows Hello authentication...");
+
+    DWORD result = pfnCredUIPrompt(
+        &credInfo,
+        0,
+        &authPackage,
+        nullptr,
+        0,
+        &outAuthBuffer,
+        &outAuthBufferSize,
+        &save,
+        CREDUIWIN_GENERIC | CREDUIWIN_ENUMERATE_CURRENT_USER
+    );
+
+    // Free the output buffer if allocated
+    if (outAuthBuffer)
+    {
+        CoTaskMemFree(outAuthBuffer);
+    }
+
+    FreeLibrary(hCredUI);
+
+    if (result == 0) // ERROR_SUCCESS
+    {
+        UpdateStatus(L"Authentication successful!");
+        return true;
+    }
+    else if (result == 1223) // ERROR_CANCELLED
+    {
+        UpdateStatus(L"Authentication cancelled by user");
+        return false;
+    }
+    else
+    {
+        std::wstringstream ss;
+        ss << L"Authentication failed (Error: " << result << L")";
+        UpdateStatus(ss.str());
+        return false;
+    }
 }
