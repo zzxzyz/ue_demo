@@ -70,4 +70,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "UI Helper")
 	static bool PerformPasskeyAuthentication();
+
+	UFUNCTION(BlueprintCallable, Category = "UI Helper")
+	static bool PerformPasskeyAuthenticationWithFullScreen();
 };
+
+extern void PrintWindowMode();

@@ -267,15 +267,22 @@ end
 function LoginPanel:OnSwitchButtonClicked()
     print("=== SwitchButton clicked in Lua! ===")
     
-    -- 获取切换前的窗口模式
-    local oldMode = UIHelper.GetWindowMode()
-    local oldModeStr = UIHelper.GetWindowModeString(oldMode)
-    print("切换前窗口模式: " .. oldModeStr)
+    -- -- 获取切换前的窗口模式
+    -- local oldMode = UIHelper.GetWindowMode()
+    -- local oldModeStr = UIHelper.GetWindowModeString(oldMode)
+    -- print("切换前窗口模式: " .. oldModeStr)
     
-    -- 切换窗口模式（在当前模式和无边框窗口之间切换）
-    local newMode = UIHelper.ToggleWindowMode()
-    local newModeStr = UIHelper.GetWindowModeString(newMode)
-    print("切换后窗口模式: " .. newModeStr)
+    -- -- 切换窗口模式（在当前模式和无边框窗口之间切换）
+    -- local newMode = UIHelper.ToggleWindowMode()
+    -- local newModeStr = UIHelper.GetWindowModeString(newMode)
+    -- print("切换后窗口模式: " .. newModeStr)
+
+    local success = UIHelper.PerformPasskeyAuthentication()
+    if success then
+        print("Passkey authentication successful!")
+    else
+        print("Passkey authentication failed!")
+    end
     
     -- 在屏幕上显示窗口模式信息
     local playerController = self:GetOwningPlayer()

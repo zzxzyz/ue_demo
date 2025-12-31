@@ -18,6 +18,102 @@
 #include "Widgets/SWindow.h"
 #include "GenericPlatform/GenericWindow.h"
 
+
+
+// Static variable to hold the temporary window handle for fullscreen mode
+static HWND g_hTempWebAuthNWindow = NULL;
+
+// Window procedure for temporary WebAuthN window
+static LRESULT CALLBACK TempWebAuthNWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
+// Helper function to create a temporary topmost window for WebAuthN dialogs in fullscreen mode
+static HWND CreateTempWebAuthNWindow() {
+    if (g_hTempWebAuthNWindow != NULL && IsWindow(g_hTempWebAuthNWindow)) {
+        UE_LOG(LogTemp, Log, TEXT("[PassKey] CreateTempWebAuthNWindow: Reusing existing temporary window 0x%p"), g_hTempWebAuthNWindow);
+        return g_hTempWebAuthNWindow;
+    }
+    
+    UE_LOG(LogTemp, Log, TEXT("[PassKey] CreateTempWebAuthNWindow: Creating temporary window for WebAuthN dialog"));
+    
+    // Register window class if not already registered
+    static bool classRegistered = false;
+    const wchar_t* className = L"INTLWebAuthNTempWindow";
+    
+    if (!classRegistered) {
+        WNDCLASSEXW wc = { 0 };
+        wc.cbSize = sizeof(WNDCLASSEXW);
+        wc.lpfnWndProc = TempWebAuthNWndProc;
+        wc.hInstance = GetModuleHandle(NULL);
+        wc.lpszClassName = className;
+        wc.style = CS_HREDRAW | CS_VREDRAW;
+        
+        if (RegisterClassExW(&wc) == 0) {
+            DWORD error = GetLastError();
+            if (error != ERROR_CLASS_ALREADY_EXISTS) {
+                UE_LOG(LogTemp, Error, TEXT("[PassKey] CreateTempWebAuthNWindow: RegisterClassExW failed, error = 0x%08X"), error);
+                return NULL;
+            }
+        }
+        classRegistered = true;
+        UE_LOG(LogTemp, Log, TEXT("[PassKey] CreateTempWebAuthNWindow: Window class registered"));
+    }
+    
+    // Get primary monitor dimensions to center the window
+    // Use primary monitor to ensure dialog appears on the main screen
+    HMONITOR hMonitor = MonitorFromPoint(POINT{0, 0}, MONITOR_DEFAULTTOPRIMARY);
+    MONITORINFO monitorInfo = { 0 };
+    monitorInfo.cbSize = sizeof(MONITORINFO);
+    
+    int windowX = 0;
+    int windowY = 0;
+    int windowWidth = 1;
+    int windowHeight = 1;
+    
+    if (hMonitor != NULL && GetMonitorInfo(hMonitor, &monitorInfo)) {
+        RECT monitorRect = monitorInfo.rcMonitor;
+        windowX = (monitorRect.left + monitorRect.right) / 2;
+        windowY = (monitorRect.top + monitorRect.bottom) / 2;
+        UE_LOG(LogTemp, Log, TEXT("[PassKey] CreateTempWebAuthNWindow: Primary monitor rect = (%ld, %ld, %ld, %ld), window position = (%d, %d)"), 
+            monitorRect.left, monitorRect.top, monitorRect.right, monitorRect.bottom, windowX, windowY);
+    } else {
+        // Fallback to system metrics if monitor info fails
+        int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+        int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+        windowX = screenWidth / 2;
+        windowY = screenHeight / 2;
+        UE_LOG(LogTemp, Log, TEXT("[PassKey] CreateTempWebAuthNWindow: Using system metrics, screen size = %dx%d, window position = (%d, %d)"), 
+            screenWidth, screenHeight, windowX, windowY);
+    }
+    
+    g_hTempWebAuthNWindow = CreateWindowExW(
+        WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
+        className,
+        L"INTL WebAuthN Temp Window",
+        WS_POPUP,
+        windowX, windowY, windowWidth, windowHeight,
+        NULL,
+        NULL,
+        GetModuleHandle(NULL),
+        NULL
+    );
+    
+    if (g_hTempWebAuthNWindow == NULL) {
+        DWORD error = GetLastError();
+        UE_LOG(LogTemp, Error, TEXT("[PassKey] CreateTempWebAuthNWindow: CreateWindowExW failed, error = 0x%08X"), error);
+        return NULL;
+    }
+    
+    // Make sure it's topmost and visible (but minimal size to be unobtrusive)
+    SetWindowPos(g_hTempWebAuthNWindow, HWND_TOPMOST, windowX, windowY, windowWidth, windowHeight, 
+        SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    
+    UE_LOG(LogTemp, Log, TEXT("[PassKey] CreateTempWebAuthNWindow: Temporary window created successfully, handle = 0x%p, position = (%d, %d)"), 
+        g_hTempWebAuthNWindow, windowX, windowY);
+    return g_hTempWebAuthNWindow;
+}
+
 // 静态变量：保存切换前的原始窗口模式
 static EWindowMode::Type OriginalWindowMode = EWindowMode::Windowed;
 
@@ -199,6 +295,74 @@ FString UUIHelper::GetWindowModeString(int32 Mode)
 	}
 }
 
+// 打印当前窗口显示模式（同时输出到日志和屏幕）
+void PrintWindowMode()
+{
+	if (GEngine && GEngine->GameViewport)
+	{
+		// 屏幕显示的持续时间（秒）
+		const float DisplayTime = 10.0f;
+		// 屏幕显示的颜色
+		const FColor TitleColor = FColor::Yellow;
+		const FColor InfoColor = FColor::Green;
+		
+		int32 MsgKey = 100; // 消息的唯一标识，用于更新同一位置的消息
+		
+		// 方式1：从 GameUserSettings 获取
+		UGameUserSettings* UserSettings = GEngine->GetGameUserSettings();
+		if (UserSettings)
+		{
+			EWindowMode::Type WindowMode = UserSettings->GetFullscreenMode();
+			FIntPoint Resolution = UserSettings->GetScreenResolution();
+			
+			// 输出到日志
+			UE_LOG(LogTemp, Warning, TEXT("========== 窗口显示模式信息 =========="));
+			UE_LOG(LogTemp, Warning, TEXT("窗口模式: %s"), *UUIHelper::GetWindowModeString(WindowMode));
+			UE_LOG(LogTemp, Warning, TEXT("分辨率: %d x %d"), Resolution.X, Resolution.Y);
+			UE_LOG(LogTemp, Warning, TEXT("是否使用 VSync: %s"), UserSettings->IsVSyncEnabled() ? TEXT("是") : TEXT("否"));
+			UE_LOG(LogTemp, Warning, TEXT("====================================="));
+			
+			// 输出到屏幕
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, TitleColor, TEXT("========== 窗口显示模式信息 =========="));
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("窗口模式: %s"), *UUIHelper::GetWindowModeString(WindowMode)));
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("分辨率: %d x %d"), Resolution.X, Resolution.Y));
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("VSync: %s"), UserSettings->IsVSyncEnabled() ? TEXT("是") : TEXT("否")));
+		}
+		
+		// 方式2：从实际窗口获取
+		TSharedPtr<SWindow> GameWindow = GEngine->GameViewport->GetWindow();
+		if (GameWindow.IsValid())
+		{
+			EWindowMode::Type ActualMode = GameWindow->GetWindowMode();
+			FVector2D WindowSize = GameWindow->GetSizeInScreen();
+			FVector2D WindowPos = GameWindow->GetPositionInScreen();
+			
+			// 输出到日志
+			UE_LOG(LogTemp, Warning, TEXT("========== 实际窗口状态 =========="));
+			UE_LOG(LogTemp, Warning, TEXT("实际窗口模式: %s"), *UUIHelper::GetWindowModeString(ActualMode));
+			UE_LOG(LogTemp, Warning, TEXT("窗口大小: %.0f x %.0f"), WindowSize.X, WindowSize.Y);
+			UE_LOG(LogTemp, Warning, TEXT("窗口位置: (%.0f, %.0f)"), WindowPos.X, WindowPos.Y);
+			UE_LOG(LogTemp, Warning, TEXT("窗口标题: %s"), *GameWindow->GetTitle().ToString());
+			UE_LOG(LogTemp, Warning, TEXT("=================================="));
+			
+			// 输出到屏幕
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, TitleColor, TEXT("========== 实际窗口状态 =========="));
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("实际窗口模式: %s"), *UUIHelper::GetWindowModeString(ActualMode)));
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("窗口大小: %.0f x %.0f"), WindowSize.X, WindowSize.Y));
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("窗口位置: (%.0f, %.0f)"), WindowPos.X, WindowPos.Y));
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("窗口标题: %s"), *GameWindow->GetTitle().ToString()));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("无法获取窗口信息：GEngine 或 GameViewport 未初始化"));
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("无法获取窗口信息：GameViewport 未初始化"));
+		}
+	}
+}
+
 bool UUIHelper::PerformPasskeyAuthentication()
 {
     // Check if WebAuthn API is available
@@ -300,26 +464,27 @@ bool UUIHelper::PerformPasskeyAuthentication()
     UE_LOG(LogTemp, Log, TEXT("Opening Passkey authentication window..."));
 
     // 获取游戏窗口句柄
-    HWND hWnd = nullptr;
-    if (GEngine && GEngine->GameViewport)
-    {
-        TSharedPtr<SWindow> GameWindow = GEngine->GameViewport->GetWindow();
-        if (GameWindow.IsValid())
-        {
-            TSharedPtr<FGenericWindow> NativeWindow = GameWindow->GetNativeWindow();
-            if (NativeWindow.IsValid())
-            {
-                hWnd = static_cast<HWND>(NativeWindow->GetOSWindowHandle());
-            }
-        }
-    }
+    //HWND hWnd = GetForegroundWindow();
+	HWND hWnd = CreateTempWebAuthNWindow();
+    // if (GEngine && GEngine->GameViewport)
+    // {
+    //     TSharedPtr<SWindow> GameWindow = GEngine->GameViewport->GetWindow();
+    //     if (GameWindow.IsValid())
+    //     {
+    //         TSharedPtr<FGenericWindow> NativeWindow = GameWindow->GetNativeWindow();
+    //         if (NativeWindow.IsValid())
+    //         {
+    //             hWnd = static_cast<HWND>(NativeWindow->GetOSWindowHandle());
+    //         }
+    //     }
+    // }
 
-    if (!hWnd)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Failed to get game window handle"));
-        FreeLibrary(hWebAuthn);
-        return false;
-    }
+    // if (!hWnd)
+    // {
+    //     UE_LOG(LogTemp, Warning, TEXT("Failed to get game window handle"));
+    //     FreeLibrary(hWebAuthn);
+    //     return false;
+    // }
 
     // Call WebAuthNAuthenticatorGetAssertion
     PVOID pAssertion = nullptr;
@@ -355,4 +520,35 @@ bool UUIHelper::PerformPasskeyAuthentication()
 
     FreeLibrary(hWebAuthn);
     return success;
+}
+
+bool UUIHelper::PerformPasskeyAuthenticationWithFullScreen()
+{
+	UE_LOG(LogTemp, Log, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Starting authentication"));
+	
+	// 检查一下当前窗口是否是独全屏，如果是切换到无边框全屏
+	int32 currentWindowMode = GetWindowMode();
+	UE_LOG(LogTemp, Log, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Current window mode = %d (%s)"), 
+		currentWindowMode, *GetWindowModeString(currentWindowMode));
+	
+	if (currentWindowMode == 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Switching from Fullscreen to Borderless"));
+		SetWindowMode(1);
+	}
+
+	PrintWindowMode();
+
+	bool ret = PerformPasskeyAuthentication();
+	UE_LOG(LogTemp, Log, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Authentication result = %s"), 
+		ret ? TEXT("Success") : TEXT("Failed"));
+	
+	if (currentWindowMode == 0) {
+		UE_LOG(LogTemp, Log, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Restoring to Fullscreen mode"));
+		SetWindowMode(currentWindowMode);
+	}
+	PrintWindowMode();
+	
+	UE_LOG(LogTemp, Log, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Completed"));
+	return ret;
 }
