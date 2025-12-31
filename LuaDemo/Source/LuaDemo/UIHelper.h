@@ -67,4 +67,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "UI Helper")
 	static FString GetWindowModeString(int32 Mode);
+
+	UFUNCTION(BlueprintCallable, Category = "UI Helper")
+	static bool PerformPasskeyAuthentication();
 };

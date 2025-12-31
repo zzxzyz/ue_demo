@@ -7,6 +7,17 @@
 #include "GameFramework/GameUserSettings.h"
 #include "Engine/Engine.h"
 
+// Windows API 头文件（用于 Passkey 认证）
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include <windows.h>
+#include <string>
+#include "Windows/HideWindowsPlatformTypes.h"
+
+// 获取窗口句柄所需头文件
+#include "Engine/GameViewportClient.h"
+#include "Widgets/SWindow.h"
+#include "GenericPlatform/GenericWindow.h"
+
 // 静态变量：保存切换前的原始窗口模式
 static EWindowMode::Type OriginalWindowMode = EWindowMode::Windowed;
 
@@ -186,4 +197,162 @@ FString UUIHelper::GetWindowModeString(int32 Mode)
 	default:
 		return TEXT("未知模式 (Unknown)");
 	}
+}
+
+bool UUIHelper::PerformPasskeyAuthentication()
+{
+    // Check if WebAuthn API is available
+    HMODULE hWebAuthn = LoadLibrary(L"webauthn.dll");
+    if (!hWebAuthn)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("WebAuthn API not available on this system"));
+        return false;
+    }
+
+    // Use the official webauthn.h structures
+    // WEBAUTHN_CLIENT_DATA structure
+    struct WEBAUTHN_CLIENT_DATA_LOCAL {
+        DWORD dwVersion;              // Version of this structure
+        DWORD cbClientDataJSON;       // Size of the pbClientDataJSON
+        PBYTE pbClientDataJSON;       // UTF-8 encoded JSON
+        LPCWSTR pwszHashAlgId;        // Hash algorithm ID
+    };
+
+    // Credential structure
+    struct WEBAUTHN_CREDENTIAL_LOCAL {
+        DWORD dwVersion;
+        DWORD cbId;
+        PBYTE pbId;
+        LPCWSTR pwszCredentialType;
+    };
+
+    // Credentials list
+    struct WEBAUTHN_CREDENTIALS_LOCAL {
+        DWORD cCredentials;
+        WEBAUTHN_CREDENTIAL_LOCAL* pCredentials;
+    };
+
+    // Extensions
+    struct WEBAUTHN_EXTENSIONS_LOCAL {
+        DWORD cExtensions;
+        PVOID pExtensions;
+    };
+
+    // WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS - Version 1 (simplest)
+    struct WEBAUTHN_GET_ASSERTION_OPTIONS_V1 {
+        DWORD dwVersion;                       // 1
+        DWORD dwTimeoutMilliseconds;
+        WEBAUTHN_CREDENTIALS_LOCAL CredentialList;
+        WEBAUTHN_EXTENSIONS_LOCAL Extensions;
+        DWORD dwAuthenticatorAttachment;
+        DWORD dwUserVerificationRequirement;
+        DWORD dwFlags;
+    };
+
+    // Get function pointer
+    typedef HRESULT(WINAPI* PFN_WEBAUTHN_GET_ASSERTION)(
+        HWND hWnd,
+        LPCWSTR pwszRpId,
+        WEBAUTHN_CLIENT_DATA_LOCAL* pWebAuthNClientData,
+        WEBAUTHN_GET_ASSERTION_OPTIONS_V1* pWebAuthNGetAssertionOptions,
+        PVOID* ppWebAuthNAssertion
+    );
+
+    typedef VOID(WINAPI* PFN_WEBAUTHN_FREE_ASSERTION)(PVOID pWebAuthNAssertion);
+
+    PFN_WEBAUTHN_GET_ASSERTION pfnGetAssertion = 
+        (PFN_WEBAUTHN_GET_ASSERTION)GetProcAddress(hWebAuthn, "WebAuthNAuthenticatorGetAssertion");
+    PFN_WEBAUTHN_FREE_ASSERTION pfnFreeAssertion = 
+        (PFN_WEBAUTHN_FREE_ASSERTION)GetProcAddress(hWebAuthn, "WebAuthNFreeAssertion");
+
+    if (!pfnGetAssertion)
+    {
+        FreeLibrary(hWebAuthn);
+        UE_LOG(LogTemp, Warning, TEXT("WebAuthNAuthenticatorGetAssertion not available"));
+        return false;
+    }
+
+    // RP ID - this is the domain shown in the passkey dialog
+    LPCWSTR rpId = L"levelinfinite.com";
+
+    // Client data JSON (UTF-8 encoded)
+    std::string clientDataJsonStr = "{\"type\":\"webauthn.get\",\"challenge\":\"AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA\",\"origin\":\"https://levelinfinite.com\",\"crossOrigin\":false}";
+    
+    // Set up client data
+    WEBAUTHN_CLIENT_DATA_LOCAL clientData = {};
+    clientData.dwVersion = 1;  // WEBAUTHN_CLIENT_DATA_CURRENT_VERSION
+    clientData.cbClientDataJSON = (DWORD)clientDataJsonStr.size();
+    clientData.pbClientDataJSON = (PBYTE)clientDataJsonStr.c_str();
+    clientData.pwszHashAlgId = L"SHA-256";
+
+    // Set up assertion options (Version 1 - simplest form)
+    WEBAUTHN_GET_ASSERTION_OPTIONS_V1 options = {};
+    options.dwVersion = 1;
+    options.dwTimeoutMilliseconds = 60000;  // 60 seconds
+    options.CredentialList.cCredentials = 0;
+    options.CredentialList.pCredentials = nullptr;
+    options.Extensions.cExtensions = 0;
+    options.Extensions.pExtensions = nullptr;
+    options.dwAuthenticatorAttachment = 0;  // WEBAUTHN_AUTHENTICATOR_ATTACHMENT_ANY
+    options.dwUserVerificationRequirement = 0;  // WEBAUTHN_USER_VERIFICATION_REQUIREMENT_ANY
+    options.dwFlags = 0;
+
+    UE_LOG(LogTemp, Log, TEXT("Opening Passkey authentication window..."));
+
+    // 获取游戏窗口句柄
+    HWND hWnd = nullptr;
+    if (GEngine && GEngine->GameViewport)
+    {
+        TSharedPtr<SWindow> GameWindow = GEngine->GameViewport->GetWindow();
+        if (GameWindow.IsValid())
+        {
+            TSharedPtr<FGenericWindow> NativeWindow = GameWindow->GetNativeWindow();
+            if (NativeWindow.IsValid())
+            {
+                hWnd = static_cast<HWND>(NativeWindow->GetOSWindowHandle());
+            }
+        }
+    }
+
+    if (!hWnd)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Failed to get game window handle"));
+        FreeLibrary(hWebAuthn);
+        return false;
+    }
+
+    // Call WebAuthNAuthenticatorGetAssertion
+    PVOID pAssertion = nullptr;
+    HRESULT hr = pfnGetAssertion(
+        hWnd,
+        rpId,
+        &clientData,
+        &options,
+        &pAssertion
+    );
+
+    bool success = false;
+    if (SUCCEEDED(hr) && pAssertion)
+    {
+        success = true;
+        if (pfnFreeAssertion)
+        {
+            pfnFreeAssertion(pAssertion);
+        }
+        UE_LOG(LogTemp, Log, TEXT("Authentication successful!"));
+    }
+    else
+    {
+        if (hr == HRESULT_FROM_WIN32(ERROR_CANCELLED))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Authentication cancelled by user"));
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("Passkey error: 0x%08X"), hr);
+        }
+    }
+
+    FreeLibrary(hWebAuthn);
+    return success;
 }
