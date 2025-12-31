@@ -103,7 +103,7 @@ void UMyGameInstance::Init()
 			// 检查 GameViewport 是否已初始化
 			if (GEngine && GEngine->GameViewport && GEngine->GameViewport->GetWindow().IsValid())
 			{
-				PrintWindowMode();
+				UUIHelper::PrintWindowMode();
 				return false; // 返回 false 停止 Ticker
 			}
 			return true; // 返回 true 继续等待

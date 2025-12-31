@@ -36,6 +36,7 @@ function LoginPanel:InitWidgets()
     self.ErrorText = self:FindWidget("ErrorText")
     self.SwitchButton = self:FindWidget("SwitchButton")
     self.InfoButton = self:FindWidget("InfoButton")
+    self.PasskeyButton = self:FindWidget("PasskeyButton")
     
     -- 检查控件是否成功获取
     if not self.EmailTextBox then
@@ -58,6 +59,9 @@ function LoginPanel:InitWidgets()
     end
     if not self.InfoButton then
         print("Warning: InfoButton not found!")
+    end
+    if not self.PasskeyButton then
+        print("Warning: PasskeyButton not found!")
     end
     
     -- 绑定登录按钮点击事件
@@ -112,6 +116,17 @@ function LoginPanel:InitWidgets()
             self:OnInfoButtonClicked()
         end)
         print("InfoButton OnClicked bound successfully")
+    end
+    
+    -- 绑定 Passkey 按钮点击事件
+    if self.PasskeyButton then
+        print("Binding PasskeyButton OnClicked in Lua")
+        self.PasskeyButton.OnClicked:Clear()
+        self.PasskeyButton.OnClicked:Add(function()
+            print("PasskeyButton OnClicked callback called in Lua")
+            self:OnPasskeyButtonClicked()
+        end)
+        print("PasskeyButton OnClicked bound successfully")
     end
     
     -- 设置密码输入框为密码模式
@@ -281,69 +296,25 @@ end
 -- SwitchButton 点击处理函数：切换窗口模式
 function LoginPanel:OnSwitchButtonClicked()
     print("=== SwitchButton clicked in Lua! ===")
+    UIHelper.ToggleWindowMode()
+end
+
+-- InfoButton 点击处理函数：显示当前窗口模式信息
+function LoginPanel:OnInfoButtonClicked()
+    print("=== InfoButton clicked in Lua! ===")
+    UIHelper.PrintWindowMode()
+end
+
+-- PasskeyButton 点击处理函数
+function LoginPanel:OnPasskeyButtonClicked()
+    print("=== PasskeyButton clicked in Lua! ===")
+    -- TODO: 添加 Passkey 认证逻辑
     local success = UIHelper.PerformPasskeyAuthenticationWithFullScreen()
     if success then
         print("Passkey authentication successful!")
     else
         print("Passkey authentication failed!")
     end
-end
-
--- InfoButton 点击处理函数：显示当前窗口模式信息
-function LoginPanel:OnInfoButtonClicked()
-    print("=== InfoButton clicked in Lua! ===")
-    
-    -- 获取当前窗口模式
-    local currentMode = UIHelper.GetWindowMode()
-    local currentModeStr = UIHelper.GetWindowModeString(currentMode)
-    print("当前窗口模式: " .. currentModeStr)
-    
-    -- 在屏幕上显示窗口模式信息
-    local playerController = self:GetOwningPlayer()
-    if playerController and KismetSystemLibrary then
-        -- 显示标题
-        KismetSystemLibrary.PrintString(
-            playerController,
-            "========== 窗口模式信息 ==========",
-            true,   -- bPrintToScreen
-            true,   -- bPrintToLog
-            {R=1, G=1, B=0, A=1},  -- 黄色
-            5.0     -- Duration 5秒
-        )
-        
-        -- 显示当前窗口模式
-        KismetSystemLibrary.PrintString(
-            playerController,
-            "当前模式: " .. currentModeStr,
-            true,
-            false,
-            {R=0, G=1, B=0, A=1},  -- 绿色
-            5.0
-        )
-        
-        -- 显示模式说明
-        local modeDesc = ""
-        if currentMode == 0 then
-            modeDesc = "独占全屏 - 游戏完全占用显示器"
-        elseif currentMode == 1 then
-            modeDesc = "无边框窗口 - 全屏但可快速切换"
-        else
-            modeDesc = "窗口模式 - 可调整大小的窗口"
-        end
-        
-        KismetSystemLibrary.PrintString(
-            playerController,
-            "说明: " .. modeDesc,
-            true,
-            false,
-            {R=0, G=1, B=1, A=1},  -- 青色
-            5.0
-        )
-    else
-        print("Warning: 无法获取 PlayerController 或 KismetSystemLibrary 进行屏幕显示")
-    end
-    
-    print("窗口模式信息显示完成")
 end
 
 return Class(nil, nil, LoginPanel)
