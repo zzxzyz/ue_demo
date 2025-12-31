@@ -9,6 +9,7 @@
 #include "Engine/GameViewportClient.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/GameUserSettings.h"
+#include "Containers/Ticker.h"
 
 
 // read file content
@@ -177,12 +178,21 @@ void UMyGameInstance::Init()
 {
 	Super::Init();
 	
-	// 延迟执行以确保窗口已创建
-	FTimerHandle TimerHandle;
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle, []()
-	{
-		PrintWindowMode();
-	}, 1.0f, false);
+	// 使用 FTicker 延迟执行，这在编辑器模式下也能正常工作
+	// GetWorld() 在 Init() 阶段可能返回 nullptr，所以不能使用 World 的 TimerManager
+	FTicker::GetCoreTicker().AddTicker(
+		FTickerDelegate::CreateLambda([](float DeltaTime) -> bool
+		{
+			// 检查 GameViewport 是否已初始化
+			if (GEngine && GEngine->GameViewport && GEngine->GameViewport->GetWindow().IsValid())
+			{
+				PrintWindowMode();
+				return false; // 返回 false 停止 Ticker
+			}
+			return true; // 返回 true 继续等待
+		}),
+		0.1f // 每 0.1 秒检查一次
+	);
 }
 
 void UMyGameInstance::Shutdown()
