@@ -5,6 +5,7 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Kismet/GameplayStatics.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 
 ULoginWidget::ULoginWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -20,6 +21,21 @@ FString ULoginWidget::GetLuaFilePath_Implementation() const
 void ULoginWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	// 设置输入模式为 UI 模式，显示鼠标光标
+	APlayerController* PlayerController = GetOwningPlayer();
+	if (PlayerController)
+	{
+		// 显示鼠标光标
+		PlayerController->bShowMouseCursor = true;
+		// 设置输入模式为 Game And UI，允许同时响应游戏和 UI 输入
+		FInputModeGameAndUI InputMode;
+		InputMode.SetWidgetToFocus(TakeWidget());
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		PlayerController->SetInputMode(InputMode);
+		
+		UE_LOG(LogTemp, Log, TEXT("LoginWidget: Set input mode to GameAndUI, mouse cursor visible"));
+	}
 
 	// 绑定登录按钮点击事件
 	if (LoginButton)
@@ -47,6 +63,22 @@ void ULoginWidget::NativeConstruct()
 
 	// 初始化时清除错误信息
 	ClearError();
+}
+
+void ULoginWidget::NativeDestruct()
+{
+	// Widget 被移除时恢复输入模式为游戏模式
+	APlayerController* PlayerController = GetOwningPlayer();
+	if (PlayerController)
+	{
+		PlayerController->bShowMouseCursor = false;
+		FInputModeGameOnly InputMode;
+		PlayerController->SetInputMode(InputMode);
+		
+		UE_LOG(LogTemp, Log, TEXT("LoginWidget: NativeDestruct - Restored input mode to GameOnly"));
+	}
+	
+	Super::NativeDestruct();
 }
 
 void ULoginWidget::OnLoginButtonClicked()
@@ -103,10 +135,10 @@ void ULoginWidget::HandleLoginSuccess()
 	
 	UE_LOG(LogTemp, Warning, TEXT("Login success, closing login widget."));
 	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Login success, closing login widget."));
+	
 	// 可在此触发后续事件，如通知控制器切换关卡、加载主菜单等
+	// 注意：输入模式恢复在 NativeDestruct 中统一处理
 	RemoveFromParent();
-
-	UE_LOG(LogTemp, Warning, TEXT("Login success, closing login widget."));
 }
 
 bool ULoginWidget::IsValidEmail(const FString& Email) const

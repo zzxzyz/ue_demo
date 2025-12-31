@@ -1,5 +1,26 @@
 local LoginPanel = {}
 
+-- 导入 UIHelper（C++ 蓝图函数库）
+local UIHelper = import("UIHelper")
+
+-- 设置输入模式为 UI 模式，显示鼠标光标
+function LoginPanel:SetUIInputMode()
+    local playerController = self:GetOwningPlayer()
+    if playerController then
+        UIHelper.SetInputModeGameAndUI(playerController, self)
+        print("LoginPanel: Input mode set to GameAndUI")
+    end
+end
+
+-- 恢复输入模式为游戏模式，隐藏鼠标光标
+function LoginPanel:RestoreGameInputMode()
+    local playerController = self:GetOwningPlayer()
+    if playerController then
+        UIHelper.SetInputModeGameOnly(playerController)
+        print("LoginPanel: Input mode set to GameOnly")
+    end
+end
+
 -- 初始化控件的通用函数
 function LoginPanel:InitWidgets()
     print("LoginPanel:InitWidgets()")
@@ -72,6 +93,10 @@ end
 -- Initialize 函数：LuaUserWidget 会调用此函数
 function LoginPanel:Initialize()
     print("LoginPanel:Initialize in Lua!")
+    
+    -- 设置输入模式为 UI 模式，显示鼠标光标
+    self:SetUIInputMode()
+    
     -- 调用初始化控件的函数
     self:InitWidgets()
 end
@@ -80,8 +105,20 @@ end
 function LoginPanel:NativeConstruct()
     -- 注意：不需要调用 Super:NativeConstruct()，因为 C++ 已经调用了父类的 NativeConstruct
     print("LoginPanel:NativeConstruct in Lua!")
+    
+    -- 设置输入模式为 UI 模式，显示鼠标光标
+    self:SetUIInputMode()
+    
     -- 调用初始化控件的函数
     self:InitWidgets()
+end
+
+-- NativeDestruct 函数：Widget 被销毁时调用
+function LoginPanel:NativeDestruct()
+    print("LoginPanel:NativeDestruct in Lua!")
+    
+    -- 恢复输入模式为游戏模式
+    self:RestoreGameInputMode()
 end
 
 function LoginPanel:OnLoginButtonClicked()

@@ -22,6 +22,7 @@ public:
 	ULoginWidget(const FObjectInitializer& ObjectInitializer);
 
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 
 	// Lua文件路径
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "slua")
