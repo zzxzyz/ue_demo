@@ -19,6 +19,7 @@
 #include "GenericPlatform/GenericWindow.h"
 #include "Framework/Application/SlateApplication.h"
 #include "HAL/PlatformProcess.h"
+#include "Containers/Ticker.h"
 
 
 
@@ -578,78 +579,11 @@ static int32 GetActualWindowMode()
 	return -1;  // 无法获取
 }
 
-// 辅助函数：等待窗口模式切换完成
-static bool WaitForWindowModeChange(int32 TargetMode, float TimeoutSeconds = 2.0f)
-{
-	UE_LOG(LogTemp, Log, TEXT("[PassKey] WaitForWindowModeChange: Waiting for actual window mode to become %d (%s)"), 
-		TargetMode, *UUIHelper::GetWindowModeString(TargetMode));
-	
-	const float StepSeconds = 0.05f;  // 每 50ms 检查一次
-	float ElapsedSeconds = 0.0f;
-	
-	while (ElapsedSeconds < TimeoutSeconds)
-	{
-		// 处理 Windows 消息循环和 Slate 事件，确保窗口状态更新
-		MSG msg;
-		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-		
-		if (FSlateApplication::IsInitialized())
-		{
-			FSlateApplication::Get().PumpMessages();
-			FSlateApplication::Get().Tick();
-		}
-		
-		// 检查实际窗口模式（从窗口对象获取，而不是从设置获取）
-		int32 ActualMode = GetActualWindowMode();
-		int32 SettingMode = UUIHelper::GetWindowMode();
-		
-		UE_LOG(LogTemp, Verbose, TEXT("[PassKey] WaitForWindowModeChange: ActualMode=%d, SettingMode=%d, Target=%d, Elapsed=%.2fs"), 
-			ActualMode, SettingMode, TargetMode, ElapsedSeconds);
-		
-		// 检查实际窗口状态是否已经切换到目标模式
-		if (ActualMode == TargetMode)
-		{
-			UE_LOG(LogTemp, Log, TEXT("[PassKey] WaitForWindowModeChange: Actual window mode changed to %d after %.2f seconds"), 
-				TargetMode, ElapsedSeconds);
-			
-			// 额外等待一段时间确保渲染完全稳定
-			// 这是关键：窗口模式切换后需要时间让 GPU 完成渲染
-			const float StabilizationTime = 0.3f;
-			float StabilizationElapsed = 0.0f;
-			while (StabilizationElapsed < StabilizationTime)
-			{
-				// 持续处理消息循环
-				while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-				{
-					TranslateMessage(&msg);
-					DispatchMessage(&msg);
-				}
-				if (FSlateApplication::IsInitialized())
-				{
-					FSlateApplication::Get().PumpMessages();
-					FSlateApplication::Get().Tick();
-				}
-				FPlatformProcess::Sleep(0.05f);
-				StabilizationElapsed += 0.05f;
-			}
-			
-			UE_LOG(LogTemp, Log, TEXT("[PassKey] WaitForWindowModeChange: Stabilization complete"));
-			return true;
-		}
-		
-		// 让出时间片，让系统处理窗口切换
-		FPlatformProcess::Sleep(StepSeconds);
-		ElapsedSeconds += StepSeconds;
-	}
-	
-	UE_LOG(LogTemp, Warning, TEXT("[PassKey] WaitForWindowModeChange: Timeout waiting for mode %d, actual mode = %d, setting mode = %d"), 
-		TargetMode, GetActualWindowMode(), UUIHelper::GetWindowMode());
-	return false;
-}
+// 静态变量：保存异步 Passkey 认证的窗口模式状态
+static bool g_bWasFullscreenForPasskey = false;
+
+// 窗口模式切换后延迟执行 Passkey 认证的时间（秒）
+static const float PASSKEY_WINDOW_SWITCH_DELAY = 0.5f;
 
 bool UUIHelper::PerformPasskeyAuthenticationWithFullScreen()
 {
@@ -660,45 +594,61 @@ bool UUIHelper::PerformPasskeyAuthenticationWithFullScreen()
 	UE_LOG(LogTemp, Log, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Current window mode = %d (%s)"), 
 		currentWindowMode, *GetWindowModeString(currentWindowMode));
 	
-	bool bWasFullscreen = (currentWindowMode == 0);
+	g_bWasFullscreenForPasskey = (currentWindowMode == 0);
 	
-	if (bWasFullscreen)
+	if (g_bWasFullscreenForPasskey)
 	{
 		UE_LOG(LogTemp, Log, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Switching from Fullscreen to Borderless"));
 		SetWindowMode(1);
 		
-		// 等待窗口模式切换完成（轮询检查）
-		if (!WaitForWindowModeChange(1, 2.0f))
-		{
-			UE_LOG(LogTemp, Error, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Failed to switch to Borderless mode"));
-		}
+		// 使用 Ticker 延迟执行 Passkey 认证，等待窗口模式切换完成
+		UE_LOG(LogTemp, Log, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Scheduling authentication after %.2f seconds delay"), 
+			PASSKEY_WINDOW_SWITCH_DELAY);
 		
-		PrintWindowMode();
+		FTicker::GetCoreTicker().AddTicker(
+			FTickerDelegate::CreateLambda([](float DeltaTime) -> bool
+			{
+				UE_LOG(LogTemp, Log, TEXT("[PassKey] Delayed execution: Starting Passkey authentication"));
+				PrintWindowMode();
+				
+				// 执行 Passkey 认证
+				bool ret = PerformPasskeyAuthentication();
+				UE_LOG(LogTemp, Log, TEXT("[PassKey] Delayed execution: Authentication result = %s"), 
+					ret ? TEXT("Success") : TEXT("Failed"));
+				
+				// 恢复独占全屏模式（也使用延迟，等待 Passkey 对话框完全关闭）
+				if (g_bWasFullscreenForPasskey)
+				{
+					UE_LOG(LogTemp, Log, TEXT("[PassKey] Delayed execution: Scheduling restore to Fullscreen after delay"));
+					
+					FTicker::GetCoreTicker().AddTicker(
+						FTickerDelegate::CreateLambda([](float DeltaTime) -> bool
+						{
+							UE_LOG(LogTemp, Log, TEXT("[PassKey] Restoring to Fullscreen mode"));
+							SetWindowMode(0);
+							PrintWindowMode();
+							UE_LOG(LogTemp, Log, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Completed"));
+							return false;  // 只执行一次
+						}),
+						0.1f  // 短暂延迟等待 Passkey 对话框关闭
+					);
+				}
+				
+				return false;  // 返回 false 表示只执行一次
+			}),
+			PASSKEY_WINDOW_SWITCH_DELAY
+		);
+		
+		// 异步执行，立即返回 true 表示已开始处理
+		return true;
 	}
-
-	// 执行 Passkey 认证
-	bool ret = PerformPasskeyAuthentication();
-	UE_LOG(LogTemp, Log, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Authentication result = %s"), 
-		ret ? TEXT("Success") : TEXT("Failed"));
-	
-	// 如果之前是独占全屏，恢复回去
-	if (bWasFullscreen)
+	else
 	{
-		// 短暂延迟，等待 Passkey 对话框完全关闭
-		FPlatformProcess::Sleep(0.1f);
-		
-		UE_LOG(LogTemp, Log, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Restoring to Fullscreen mode"));
-		SetWindowMode(0);
-		
-		// 等待窗口模式切换完成（轮询检查）
-		if (!WaitForWindowModeChange(0, 2.0f))
-		{
-			UE_LOG(LogTemp, Error, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Failed to restore Fullscreen mode"));
-		}
-		
-		PrintWindowMode();
+		// 非独占全屏模式，直接执行认证
+		bool ret = PerformPasskeyAuthentication();
+		UE_LOG(LogTemp, Log, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Authentication result = %s"), 
+			ret ? TEXT("Success") : TEXT("Failed"));
+		UE_LOG(LogTemp, Log, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Completed"));
+		return ret;
 	}
-	
-	UE_LOG(LogTemp, Log, TEXT("[PassKey] PerformPasskeyAuthenticationWithFullScreen: Completed"));
-	return ret;
 }
