@@ -564,26 +564,80 @@ static void ProcessMessagesAndWait(int32 WaitTimeMs)
 	UE_LOG(LogTemp, Log, TEXT("[PassKey] ProcessMessagesAndWait: Done waiting"));
 }
 
+// 辅助函数：获取实际窗口模式（从窗口对象获取，而不是从设置获取）
+static int32 GetActualWindowMode()
+{
+	if (GEngine && GEngine->GameViewport)
+	{
+		TSharedPtr<SWindow> GameWindow = GEngine->GameViewport->GetWindow();
+		if (GameWindow.IsValid())
+		{
+			return static_cast<int32>(GameWindow->GetWindowMode());
+		}
+	}
+	return -1;  // 无法获取
+}
+
 // 辅助函数：等待窗口模式切换完成
 static bool WaitForWindowModeChange(int32 TargetMode, float TimeoutSeconds = 2.0f)
 {
-	UE_LOG(LogTemp, Log, TEXT("[PassKey] WaitForWindowModeChange: Waiting for mode %d"), TargetMode);
+	UE_LOG(LogTemp, Log, TEXT("[PassKey] WaitForWindowModeChange: Waiting for actual window mode to become %d (%s)"), 
+		TargetMode, *UUIHelper::GetWindowModeString(TargetMode));
 	
 	const float StepSeconds = 0.05f;  // 每 50ms 检查一次
 	float ElapsedSeconds = 0.0f;
 	
 	while (ElapsedSeconds < TimeoutSeconds)
 	{
-		// 检查当前窗口模式
-		int32 CurrentMode = UUIHelper::GetWindowMode();
-		
-		if (CurrentMode == TargetMode)
+		// 处理 Windows 消息循环和 Slate 事件，确保窗口状态更新
+		MSG msg;
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
-			UE_LOG(LogTemp, Log, TEXT("[PassKey] WaitForWindowModeChange: Mode changed to %d after %.2f seconds"), 
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+		
+		if (FSlateApplication::IsInitialized())
+		{
+			FSlateApplication::Get().PumpMessages();
+			FSlateApplication::Get().Tick();
+		}
+		
+		// 检查实际窗口模式（从窗口对象获取，而不是从设置获取）
+		int32 ActualMode = GetActualWindowMode();
+		int32 SettingMode = UUIHelper::GetWindowMode();
+		
+		UE_LOG(LogTemp, Verbose, TEXT("[PassKey] WaitForWindowModeChange: ActualMode=%d, SettingMode=%d, Target=%d, Elapsed=%.2fs"), 
+			ActualMode, SettingMode, TargetMode, ElapsedSeconds);
+		
+		// 检查实际窗口状态是否已经切换到目标模式
+		if (ActualMode == TargetMode)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[PassKey] WaitForWindowModeChange: Actual window mode changed to %d after %.2f seconds"), 
 				TargetMode, ElapsedSeconds);
 			
-			// 额外等待一小段时间确保渲染稳定
-			FPlatformProcess::Sleep(0.1f);
+			// 额外等待一段时间确保渲染完全稳定
+			// 这是关键：窗口模式切换后需要时间让 GPU 完成渲染
+			const float StabilizationTime = 0.3f;
+			float StabilizationElapsed = 0.0f;
+			while (StabilizationElapsed < StabilizationTime)
+			{
+				// 持续处理消息循环
+				while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+				{
+					TranslateMessage(&msg);
+					DispatchMessage(&msg);
+				}
+				if (FSlateApplication::IsInitialized())
+				{
+					FSlateApplication::Get().PumpMessages();
+					FSlateApplication::Get().Tick();
+				}
+				FPlatformProcess::Sleep(0.05f);
+				StabilizationElapsed += 0.05f;
+			}
+			
+			UE_LOG(LogTemp, Log, TEXT("[PassKey] WaitForWindowModeChange: Stabilization complete"));
 			return true;
 		}
 		
@@ -592,8 +646,8 @@ static bool WaitForWindowModeChange(int32 TargetMode, float TimeoutSeconds = 2.0
 		ElapsedSeconds += StepSeconds;
 	}
 	
-	UE_LOG(LogTemp, Warning, TEXT("[PassKey] WaitForWindowModeChange: Timeout waiting for mode %d, current mode = %d"), 
-		TargetMode, UUIHelper::GetWindowMode());
+	UE_LOG(LogTemp, Warning, TEXT("[PassKey] WaitForWindowModeChange: Timeout waiting for mode %d, actual mode = %d, setting mode = %d"), 
+		TargetMode, GetActualWindowMode(), UUIHelper::GetWindowMode());
 	return false;
 }
 
