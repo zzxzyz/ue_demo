@@ -317,42 +317,48 @@ void UUIHelper::PrintWindowMode()
 			EWindowMode::Type WindowMode = UserSettings->GetFullscreenMode();
 			FIntPoint Resolution = UserSettings->GetScreenResolution();
 			
-			// 输出到日志
-			UE_LOG(LogTemp, Warning, TEXT("========== 窗口显示模式信息 =========="));
-			UE_LOG(LogTemp, Warning, TEXT("窗口模式: %s"), *UUIHelper::GetWindowModeString(WindowMode));
-			UE_LOG(LogTemp, Warning, TEXT("分辨率: %d x %d"), Resolution.X, Resolution.Y);
-			UE_LOG(LogTemp, Warning, TEXT("是否使用 VSync: %s"), UserSettings->IsVSyncEnabled() ? TEXT("是") : TEXT("否"));
-			UE_LOG(LogTemp, Warning, TEXT("====================================="));
+			// 格式化窗口显示模式信息
+			FString DisplayModeInfo = FString::Printf(
+				TEXT("========== 窗口显示模式信息 ==========\n")
+				TEXT("窗口模式: %s\n")
+				TEXT("分辨率: %d x %d\n")
+				TEXT("VSync: %s\n")
+				TEXT("====================================="),
+				*UUIHelper::GetWindowModeString(WindowMode),
+				Resolution.X, Resolution.Y,
+				UserSettings->IsVSyncEnabled() ? TEXT("是") : TEXT("否")
+			);
 			
-			// 输出到屏幕
-			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, TitleColor, TEXT("========== 窗口显示模式信息 =========="));
-			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("窗口模式: %s"), *UUIHelper::GetWindowModeString(WindowMode)));
-			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("分辨率: %d x %d"), Resolution.X, Resolution.Y));
-			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("VSync: %s"), UserSettings->IsVSyncEnabled() ? TEXT("是") : TEXT("否")));
+			// 输出到日志和屏幕
+			UE_LOG(LogTemp, Warning, TEXT("%s"), *DisplayModeInfo);
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, DisplayModeInfo);
 		}
 		
 		// 方式2：从实际窗口获取
 		TSharedPtr<SWindow> GameWindow = GEngine->GameViewport->GetWindow();
 		if (GameWindow.IsValid())
 		{
-			EWindowMode::Type ActualMode = GameWindow->GetWindowMode();
+				EWindowMode::Type ActualMode = GameWindow->GetWindowMode();
 			FVector2D WindowSize = GameWindow->GetSizeInScreen();
 			FVector2D WindowPos = GameWindow->GetPositionInScreen();
 			
-			// 输出到日志
-			UE_LOG(LogTemp, Warning, TEXT("========== 实际窗口状态 =========="));
-			UE_LOG(LogTemp, Warning, TEXT("实际窗口模式: %s"), *UUIHelper::GetWindowModeString(ActualMode));
-			UE_LOG(LogTemp, Warning, TEXT("窗口大小: %.0f x %.0f"), WindowSize.X, WindowSize.Y);
-			UE_LOG(LogTemp, Warning, TEXT("窗口位置: (%.0f, %.0f)"), WindowPos.X, WindowPos.Y);
-			UE_LOG(LogTemp, Warning, TEXT("窗口标题: %s"), *GameWindow->GetTitle().ToString());
-			UE_LOG(LogTemp, Warning, TEXT("=================================="));
+			// 格式化实际窗口状态信息
+			FString WindowStateInfo = FString::Printf(
+				TEXT("========== 实际窗口状态 ==========\n")
+				TEXT("实际窗口模式: %s\n")
+				TEXT("窗口大小: %.0f x %.0f\n")
+				TEXT("窗口位置: (%.0f, %.0f)\n")
+				TEXT("窗口标题: %s\n")
+				TEXT("=================================="),
+				*UUIHelper::GetWindowModeString(ActualMode),
+				WindowSize.X, WindowSize.Y,
+				WindowPos.X, WindowPos.Y,
+				*GameWindow->GetTitle().ToString()
+			);
 			
-			// 输出到屏幕
-			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, TitleColor, TEXT("========== 实际窗口状态 =========="));
-			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("实际窗口模式: %s"), *UUIHelper::GetWindowModeString(ActualMode)));
-			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("窗口大小: %.0f x %.0f"), WindowSize.X, WindowSize.Y));
-			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("窗口位置: (%.0f, %.0f)"), WindowPos.X, WindowPos.Y));
-			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, FString::Printf(TEXT("窗口标题: %s"), *GameWindow->GetTitle().ToString()));
+			// 输出到日志和屏幕
+			UE_LOG(LogTemp, Warning, TEXT("%s"), *WindowStateInfo);
+			GEngine->AddOnScreenDebugMessage(MsgKey++, DisplayTime, InfoColor, WindowStateInfo);
 		}
 	}
 	else
