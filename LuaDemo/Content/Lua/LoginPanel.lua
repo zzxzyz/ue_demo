@@ -3,6 +3,9 @@ local LoginPanel = {}
 -- 导入 UIHelper（C++ 蓝图函数库）
 local UIHelper = import("UIHelper")
 
+-- 导入 KismetSystemLibrary 用于屏幕调试信息
+local KismetSystemLibrary = import("KismetSystemLibrary")
+
 -- 设置输入模式为 UI 模式，显示鼠标光标
 function LoginPanel:SetUIInputMode()
     local playerController = self:GetOwningPlayer()
@@ -31,6 +34,7 @@ function LoginPanel:InitWidgets()
     self.LoginButton = self:FindWidget("LoginButton")
     self.CancelButton = self:FindWidget("CancelButton")
     self.ErrorText = self:FindWidget("ErrorText")
+    self.SwitchButton = self:FindWidget("SwitchButton")
     
     -- 检查控件是否成功获取
     if not self.EmailTextBox then
@@ -47,6 +51,9 @@ function LoginPanel:InitWidgets()
     end
     if not self.ErrorText then
         print("Warning: ErrorText not found!")
+    end
+    if not self.SwitchButton then
+        print("Warning: SwitchButton not found!")
     end
     
     -- 绑定登录按钮点击事件
@@ -79,6 +86,17 @@ function LoginPanel:InitWidgets()
             self:OnCloseButtonClicked()
         end)
         print("CloseButton OnClicked bound successfully")
+    end
+    
+    -- 绑定切换按钮点击事件
+    if self.SwitchButton then
+        print("Binding SwitchButton OnClicked in Lua")
+        self.SwitchButton.OnClicked:Clear()
+        self.SwitchButton.OnClicked:Add(function()
+            print("SwitchButton OnClicked callback called in Lua")
+            self:OnSwitchButtonClicked()
+        end)
+        print("SwitchButton OnClicked bound successfully")
     end
     
     -- 设置密码输入框为密码模式
@@ -243,6 +261,47 @@ function LoginPanel:OnCloseButtonClicked()
     else
         print("ERROR: RemoveFromParent function not found!")
     end
+end
+
+-- SwitchButton 点击处理函数
+function LoginPanel:OnSwitchButtonClicked()
+    print("=== SwitchButton clicked in Lua! ===")
+    
+    -- 打印详细调试信息到日志
+    local debugInfo = "SwitchButton 被点击"
+    print("LoginPanel: " .. debugInfo)
+    print("当前时间: " .. os.date("%Y-%m-%d %H:%M:%S"))
+    print("self 类型: " .. type(self))
+    
+    -- 通过 PlayerController 获取 World 用于屏幕调试信息
+    local playerController = self:GetOwningPlayer()
+    if playerController and KismetSystemLibrary then
+        -- PrintString(WorldContextObject, InString, bPrintToScreen, bPrintToLog, TextColor, Duration)
+        KismetSystemLibrary.PrintString(
+            playerController,
+            "SwitchButton 被点击! - 来自 Lua",
+            true,   -- bPrintToScreen
+            true,   -- bPrintToLog
+            {R=0, G=1, B=0, A=1},  -- 绿色
+            5.0     -- Duration 5秒
+        )
+        
+        -- 显示更多调试信息
+        KismetSystemLibrary.PrintString(
+            playerController,
+            "LoginPanel: Switch 功能已触发",
+            true,
+            false,
+            {R=1, G=1, B=0, A=1},  -- 黄色
+            5.0
+        )
+    else
+        print("Warning: 无法获取 PlayerController 或 KismetSystemLibrary 进行屏幕显示")
+    end
+    
+    -- TODO: 在这里添加实际的切换逻辑
+    -- 例如：切换登录/注册模式、切换账号类型等
+    print("SwitchButton 处理完成")
 end
 
 return Class(nil, nil, LoginPanel)
