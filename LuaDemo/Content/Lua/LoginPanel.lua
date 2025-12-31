@@ -263,45 +263,57 @@ function LoginPanel:OnCloseButtonClicked()
     end
 end
 
--- SwitchButton 点击处理函数
+-- SwitchButton 点击处理函数：切换窗口模式
 function LoginPanel:OnSwitchButtonClicked()
     print("=== SwitchButton clicked in Lua! ===")
     
-    -- 打印详细调试信息到日志
-    local debugInfo = "SwitchButton 被点击"
-    print("LoginPanel: " .. debugInfo)
-    print("当前时间: " .. os.date("%Y-%m-%d %H:%M:%S"))
-    print("self 类型: " .. type(self))
+    -- 获取切换前的窗口模式
+    local oldMode = UIHelper.GetWindowMode()
+    local oldModeStr = UIHelper.GetWindowModeString(oldMode)
+    print("切换前窗口模式: " .. oldModeStr)
     
-    -- 通过 PlayerController 获取 World 用于屏幕调试信息
+    -- 切换窗口模式（在当前模式和无边框窗口之间切换）
+    local newMode = UIHelper.ToggleWindowMode()
+    local newModeStr = UIHelper.GetWindowModeString(newMode)
+    print("切换后窗口模式: " .. newModeStr)
+    
+    -- 在屏幕上显示窗口模式信息
     local playerController = self:GetOwningPlayer()
     if playerController and KismetSystemLibrary then
-        -- PrintString(WorldContextObject, InString, bPrintToScreen, bPrintToLog, TextColor, Duration)
+        -- 显示切换信息
         KismetSystemLibrary.PrintString(
             playerController,
-            "SwitchButton 被点击! - 来自 Lua",
+            "窗口模式切换!",
             true,   -- bPrintToScreen
             true,   -- bPrintToLog
             {R=0, G=1, B=0, A=1},  -- 绿色
             5.0     -- Duration 5秒
         )
         
-        -- 显示更多调试信息
+        -- 显示切换前模式
         KismetSystemLibrary.PrintString(
             playerController,
-            "LoginPanel: Switch 功能已触发",
+            "切换前: " .. oldModeStr,
             true,
             false,
             {R=1, G=1, B=0, A=1},  -- 黄色
+            5.0
+        )
+        
+        -- 显示切换后模式
+        KismetSystemLibrary.PrintString(
+            playerController,
+            "切换后: " .. newModeStr,
+            true,
+            false,
+            {R=0, G=1, B=1, A=1},  -- 青色
             5.0
         )
     else
         print("Warning: 无法获取 PlayerController 或 KismetSystemLibrary 进行屏幕显示")
     end
     
-    -- TODO: 在这里添加实际的切换逻辑
-    -- 例如：切换登录/注册模式、切换账号类型等
-    print("SwitchButton 处理完成")
+    print("窗口模式切换完成")
 end
 
 return Class(nil, nil, LoginPanel)

@@ -38,4 +38,33 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "UI Helper")
 	static void SetInputModeUIOnly(APlayerController* PlayerController, UWidget* WidgetToFocus = nullptr);
+
+	/**
+	 * 获取当前窗口模式
+	 * @return 窗口模式: 0=全屏, 1=无边框窗口, 2=窗口模式
+	 */
+	UFUNCTION(BlueprintCallable, Category = "UI Helper")
+	static int32 GetWindowMode();
+
+	/**
+	 * 设置窗口模式
+	 * @param Mode 窗口模式: 0=全屏, 1=无边框窗口, 2=窗口模式
+	 */
+	UFUNCTION(BlueprintCallable, Category = "UI Helper")
+	static void SetWindowMode(int32 Mode);
+
+	/**
+	 * 切换窗口模式（在当前模式和无边框窗口之间切换）
+	 * @return 切换后的窗口模式: 0=全屏, 1=无边框窗口, 2=窗口模式
+	 */
+	UFUNCTION(BlueprintCallable, Category = "UI Helper")
+	static int32 ToggleWindowMode();
+
+	/**
+	 * 获取窗口模式的字符串描述
+	 * @param Mode 窗口模式
+	 * @return 窗口模式的中文描述
+	 */
+	UFUNCTION(BlueprintCallable, Category = "UI Helper")
+	static FString GetWindowModeString(int32 Mode);
 };
