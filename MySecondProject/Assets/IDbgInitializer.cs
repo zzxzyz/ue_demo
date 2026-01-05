@@ -1,5 +1,7 @@
 using UnityEngine;
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
 using IDbg;
+#endif
 
 /// <summary>
 /// IDbg 库初始化器
@@ -8,8 +10,10 @@ using IDbg;
 /// </summary>
 public static class IDbgInitializer
 {
+    #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
     private static bool isInitialized = false;
     private static IDbgWrapper.LogDelegate logDelegate = null;
+    #endif
 
     /// <summary>
     /// 在场景加载前自动初始化 IDbg
@@ -17,6 +21,7 @@ public static class IDbgInitializer
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void InitializeIDbg()
     {
+        #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
         if (isInitialized)
         {
             return;
@@ -113,10 +118,14 @@ public static class IDbgInitializer
             Debug.LogError($"[IDbgInitializer] 初始化 IDbg 时出错: {e.Message}");
             Debug.LogException(e);
         }
+        #else
+        Debug.Log("[IDbgInitializer] 非 Windows 平台，跳过 IDbg 初始化");
+        #endif
     }
 
     static void CleanupIDbg()
     {
+        #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
         if (isInitialized)
         {
             try
@@ -130,6 +139,7 @@ public static class IDbgInitializer
                 Debug.LogError($"[IDbgInitializer] 清理 IDbg 时出错: {e.Message}");
             }
         }
+        #endif
     }
 }
 

@@ -2,6 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
 namespace IDbg
 {
     /// <summary>
@@ -516,4 +517,5 @@ namespace IDbg
         }
     }
 }
+#endif
 

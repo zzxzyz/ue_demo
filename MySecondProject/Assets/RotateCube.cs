@@ -1,5 +1,7 @@
 ﻿using UnityEngine;
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
 using IDbg;  // IDbg库命名空间
+#endif
 
 public class RotateCube : MonoBehaviour
 {
@@ -7,6 +9,7 @@ public class RotateCube : MonoBehaviour
     {
         Debug.Log("立方体开始旋转了！");
         
+        #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
         // 使用IDbg获取系统信息（IDbgInitializer已自动初始化）
         if (IDbgWrapper.IsAvailable())
         {
@@ -14,6 +17,7 @@ public class RotateCube : MonoBehaviour
             Debug.Log($"CPU核心数: {IDbgWrapper.GetCpuCore()}");
             Debug.Log($"进程ID: {IDbgWrapper.GetProcessId()}");
         }
+        #endif
     }
 
     void Update()

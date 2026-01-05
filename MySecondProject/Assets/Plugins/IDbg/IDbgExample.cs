@@ -1,5 +1,7 @@
 using UnityEngine;
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
 using IDbg;
+#endif
 
 /// <summary>
 /// IDbg使用示例
@@ -8,6 +10,7 @@ public class IDbgExample : MonoBehaviour
 {
     void Start()
     {
+        #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
         // 初始化IDbg
         IDbgLog.Initialize();
 
@@ -39,16 +42,22 @@ public class IDbgExample : MonoBehaviour
         {
             Debug.LogError("IDbg库加载失败，请检查DLL是否正确放置");
         }
+        #else
+        Debug.Log("[IDbgExample] 非 Windows 平台，跳过 IDbg 初始化");
+        #endif
     }
 
     void OnDestroy()
     {
+        #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
         // 清理资源
         IDbgLog.Cleanup();
+        #endif
     }
 
     void Update()
     {
+        #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
         // 每帧可以获取性能信息
         if (Time.frameCount % 60 == 0) // 每60帧输出一次
         {
@@ -59,6 +68,7 @@ public class IDbgExample : MonoBehaviour
                 Debug.Log($"[性能监控] CPU: {appCpu}%, 内存: {appMemory} MB");
             }
         }
+        #endif
     }
 }
 
